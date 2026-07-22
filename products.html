@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — MYHBeauty</title>
+  <meta name="description" content="Explore MYHBeauty's full range of professional beauty instruments — RF skin tightening, LED light therapy, microcurrent, ultrasonic, and body care devices.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Products — MYHBeauty">
+  <meta property="og:description" content="Explore MYHBeauty's full range of professional beauty instruments — RF, LED, microcurrent, ultrasonic, cavitation, and body care devices.">
+  <meta property="og:url" content="https://www.myhbeauty.com/products.html">
+  <meta property="og:site_name" content="MYHBeauty">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Loader -->
+  <div class="loader">
+    <div class="loader-text">MYHBeauty</div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">
+        MYH<span>Beauty</span>
+        <span class="sub">Beauty Instruments</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="products.html">Products</a></li>
+        <li><a href="treatments.html">Treatments</a></li>
+        <li><a href="blog.html">Blog</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <button class="nav-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="container">
+      <span class="eyebrow reveal">Our Collection</span>
+      <h1 class="reveal reveal-delay-1">Beauty Instruments<br>for Every Need</h1>
+      <p class="lead reveal reveal-delay-2">
+        From professional salon equipment to elegant home-use devices,
+        explore our complete range of beauty instruments engineered for
+        visible results.
+      </p>
+      <div class="breadcrumb reveal reveal-delay-3">
+        <a href="index.html">Home</a> <span>/</span> <span>Products</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Products Layout: Sidebar + Grid -->
+  <section class="section section-sm">
+    <div class="container">
+      <div class="products-layout">
+
+        <!-- Sidebar -->
+        <aside class="products-sidebar reveal">
+          <div class="sidebar-block">
+            <h4 class="sidebar-title">Search</h4>
+            <div class="sidebar-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+              <input type="text" id="productSearch" placeholder="Search products..." aria-label="Search products">
+            </div>
+          </div>
+
+          <div class="sidebar-block">
+            <h4 class="sidebar-title">Categories</h4>
+            <ul class="sidebar-cats" id="sidebarCats">
+              <li><button class="sidebar-cat active" data-filter="all"><span>All Products</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="rf"><span>RF Technology</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="led"><span>LED Therapy</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="micro"><span>Microcurrent</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="ultra"><span>Ultrasonic</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="body"><span>Body Care</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="cavitation"><span>Cavitation Machine</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="derma"><span>Dermabrasion</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="vacuum"><span>Vacuum Therapy</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="hair"><span>Hair Removal</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="ems"><span>EMS Machine</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="sshape"><span>S Shape Machine</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="cryo"><span>Cryolipolysis</span><span class="cat-count">0</span></button></li>
+              <li><button class="sidebar-cat" data-filter="needle"><span>Microneedling</span><span class="cat-count">0</span></button></li>
+            </ul>
+          </div>
+
+          <div class="sidebar-help">
+            <div class="sidebar-help-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+            </div>
+            <h4>Need Help Choosing?</h4>
+            <p>Our specialists will help you find the right instrument for your needs.</p>
+            <a href="contact.html" class="btn btn-outline btn-sm">Contact Us</a>
+          </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="products-main">
+          <div class="products-toolbar reveal">
+            <span class="toolbar-count" id="toolbarCount">Showing all products</span>
+            <div class="toolbar-sort">
+              <label for="sortSelect">Sort by</label>
+              <select id="sortSelect">
+                <option value="featured">Featured</option>
+                <option value="newest">Newest</option>
+                <option value="name">Name A–Z</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="product-grid product-grid-shop" id="productGrid" data-dynamic="true"><!-- Products rendered dynamically from Store --></div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Technology Features -->
+  <section class="section bg-warm">
+    <div class="container">
+      <div class="section-title reveal">
+        <span class="eyebrow">Our Technology</span>
+        <h2>Powered by Innovation</h2>
+        <p class="lead">Four core technologies that define every MYHBeauty instrument.</p>
+      </div>
+      <div class="features">
+        <div class="feature-card reveal">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3>Radio Frequency</h3>
+          <p>1-3MHz multi-polar RF that penetrates dermis to stimulate collagen production and tighten skin from within.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-1">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="5"/><path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3"/></svg>
+          </div>
+          <h3>LED Phototherapy</h3>
+          <p>Medical-grade LEDs in 7 wavelengths (415nm-850nm) for clinical-grade light therapy treatments.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-2">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Microcurrent (EMS)</h3>
+          <p>Low-level electrical currents that mirror the body's natural signals to tone muscles and boost ATP production.</p>
+        </div>
+        <div class="feature-card reveal reveal-delay-3">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12c0-5 4-9 9-9M12 3v18M21 12c0 5-4 9-9 9"/></svg>
+          </div>
+          <h3>Ultrasonic Waves</h3>
+          <p>28-40kHz high-frequency vibration for deep cleansing, gentle exfoliation, and transdermal nutrient delivery.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OEM/ODM Section -->
+  <section class="section">
+    <div class="container">
+      <div class="split">
+        <div class="split-text reveal">
+          <span class="eyebrow">B2B Solutions</span>
+          <h2>OEM &amp; ODM<br>Manufacturing</h2>
+          <p class="lead" style="margin-bottom: 1.5rem;">
+            Beyond our branded products, MYHBeauty is a trusted OEM/ODM
+            partner for beauty brands worldwide. From concept to mass
+            production, we bring your vision to life.
+          </p>
+          <ul style="margin-bottom: 2rem; color: var(--c-text-soft);">
+            <li style="margin-bottom: .7rem;">&#10003; Custom product design and engineering</li>
+            <li style="margin-bottom: .7rem;">&#10003; Private label and white-label solutions</li>
+            <li style="margin-bottom: .7rem;">&#10003; MOQ as low as 500 units</li>
+            <li style="margin-bottom: .7rem;">&#10003; Full certification support (CE, FDA, RoHS, PSE)</li>
+            <li style="margin-bottom: .7rem;">&#10003; Packaging design and global logistics</li>
+          </ul>
+          <a href="contact.html" class="btn btn-primary btn-arrow">Request a Quote</a>
+        </div>
+        <div class="split-visual gradient-2 reveal reveal-delay-1">
+          <div class="split-visual-pattern"></div>
+          <div class="split-visual-badge">
+            <div class="num">500+</div>
+            <div class="label">OEM Partners<br>Worldwide</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-banner bg-warm">
+    <div class="container container-narrow">
+      <div class="reveal">
+        <span class="eyebrow">Need Help Choosing?</span>
+        <h2>Find Your Perfect<br>Beauty Solution</h2>
+        <p class="lead">
+          Our product specialists are ready to help you select the right
+          instruments for your needs — whether for personal use or your business.
+        </p>
+        <a href="contact.html" class="btn btn-primary btn-arrow">Talk to an Expert</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="nav-logo">MYH<span style="color:var(--c-accent)">Beauty</span></a>
+          <p>Premium beauty instruments crafted with precision, powered by innovation, and designed for elegance.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
+            <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+            <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+            <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19c1.72.46 8.6.42 8.6.42s6.88 0 8.6-.42a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.33z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z" fill="currentColor"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="treatments.html">Treatments</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Products</h4>
+          <ul>
+            <li><a href="products.html?cat=cavitation">Cavitation Machines</a></li>
+            <li><a href="products.html?cat=derma">Dermabrasion</a></li>
+            <li><a href="products.html?cat=hair">Hair Removal</a></li>
+            <li><a href="products.html?cat=ems">EMS Machines</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Newsletter</h4>
+          <p style="font-size: var(--fs-sm); margin-bottom: 0;">Subscribe for product updates and beauty tips.</p>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Your email" required>
+            <button type="submit">Join</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024-2026 MYHBeauty. All rights reserved. | Beauty Instruments Manufacturer | <a href="login.html" style="color:var(--c-accent); margin-left:.5rem;">Admin Dashboard</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll to Top -->
+  <button class="scroll-top" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="js/store.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

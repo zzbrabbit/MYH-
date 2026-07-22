@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — MYHBeauty</title>
+  <meta name="description" content="MYHBeauty product management dashboard. Add, edit, and manage your beauty instrument product catalog.">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body class="admin-body">
+
+  <!-- Admin Nav -->
+  <nav class="admin-nav">
+    <div class="container nav-inner">
+      <div style="display:flex; align-items:center;">
+        <a href="index.html" class="nav-logo">
+          MYH<span>Beauty</span>
+        </a>
+        <span class="admin-badge">Admin</span>
+      </div>
+      <div class="admin-nav-actions">
+        <span class="admin-user" id="adminUser"></span>
+        <a href="products.html" target="_blank">View Store</a>
+        <a href="index.html" class="btn-view">Back to Site</a>
+        <button class="btn-logout" id="btnLogout" title="Sign out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Admin Main -->
+  <main class="admin-main">
+    <div class="container">
+
+      <!-- Tab Navigation -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="products" id="tabBtnProducts">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4M20 7v10l-8 4-8-4V7M20 7l-8 4M4 7l8 4m0 0v10"/></svg>
+          Products
+        </button>
+        <button class="admin-tab" data-tab="content" id="tabBtnContent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+          Page Content
+        </button>
+      </div>
+
+      <!-- ===== Products Tab ===== -->
+      <div class="admin-tab-content active" id="tabProducts">
+
+      <!-- Header -->
+      <div class="admin-header">
+        <div>
+          <h1>Product Management</h1>
+          <p>Manage your beauty instrument product catalog</p>
+        </div>
+        <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+          <button class="btn-admin btn-admin-outline" id="btnImport">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Import
+          </button>
+          <button class="btn-admin btn-admin-outline" id="btnExport">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export
+          </button>
+          <button class="btn-admin btn-admin-outline" id="btnReset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5"/></svg>
+            Reset
+          </button>
+          <button class="btn-admin btn-admin-primary" id="btnAdd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add Product
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="admin-stats" id="statsContainer">
+        <!-- Filled by JS -->
+      </div>
+
+      <!-- Toolbar -->
+      <div class="admin-toolbar">
+        <div class="toolbar-left">
+          <div class="admin-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="searchInput" placeholder="Search products...">
+          </div>
+          <select class="admin-filter-select" id="filterCategory">
+            <option value="all">All Categories</option>
+            <option value="rf">RF Technology</option>
+            <option value="led">LED Therapy</option>
+            <option value="micro">Microcurrent</option>
+            <option value="ultra">Ultrasonic</option>
+            <option value="body">Body Care</option>
+            <option value="cavitation">Cavitation Machine</option>
+            <option value="derma">Dermabrasion</option>
+            <option value="vacuum">Vacuum Therapy</option>
+            <option value="hair">Hair Removal</option>
+            <option value="ems">EMS Machine</option>
+            <option value="sshape">S Shape Machine</option>
+            <option value="cryo">Cryolipolysis</option>
+            <option value="needle">Microneedling</option>
+          </select>
+        </div>
+        <div class="toolbar-right">
+          <span id="resultCount" style="font-size:var(--fs-sm); color:var(--c-text-soft);"></span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="productTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Tag</th>
+              <th>Featured</th>
+              <th>Created</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="productTableBody">
+            <!-- Filled by JS -->
+          </tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M20 7l-8-4-8 4M20 7v10l-8 4-8-4V7M20 7l-8 4M4 7l8 4m0 0v10"/></svg>
+          <h3>No Products Found</h3>
+          <p>Start by adding your first product or import existing data.</p>
+          <button class="btn-admin btn-admin-primary" onclick="openAddModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Add Product
+          </button>
+        </div>
+      </div>
+      </div><!-- /#tabProducts -->
+
+      <!-- ===== Page Content Tab ===== -->
+      <div class="admin-tab-content" id="tabContent">
+        <div class="admin-header">
+          <div>
+            <h1>Page Content Management</h1>
+            <p>Edit text and images on every page of your website</p>
+          </div>
+          <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <button class="btn-admin btn-admin-outline" id="btnContentReset">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5"/></svg>
+              Reset Page
+            </button>
+            <button class="btn-admin btn-admin-primary" id="btnContentSave">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              Save Changes
+            </button>
+          </div>
+        </div>
+
+        <!-- Page Selector -->
+        <div class="content-page-selector">
+          <label>Select Page to Edit:</label>
+          <select id="contentPageSelect" class="admin-filter-select">
+            <option value="index">Home Page</option>
+            <option value="about">About Page</option>
+            <option value="contact">Contact Page</option>
+            <option value="products">Products Page</option>
+            <option value="blog">Blog Page</option>
+            <option value="treatments">Treatments Page</option>
+          </select>
+          <span class="content-page-hint" id="contentPageHint"></span>
+        </div>
+
+        <!-- Content Editor Area -->
+        <div id="contentEditorArea">
+          <!-- Filled by JS -->
+        </div>
+      </div><!-- /#tabContent -->
+
+    </div>
+  </main>
+
+  <!-- Product Modal (Add/Edit) -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Product</h2>
+        <button class="modal-close" onclick="closeModal('productModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm">
+          <input type="hidden" id="productId">
+
+          <div class="form-group">
+            <label for="pName">Product Name *</label>
+            <input type="text" id="pName" required placeholder="e.g. RF Skin Tightening Device">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pCategory">Category *</label>
+              <select id="pCategory" required>
+                <option value="">Select category...</option>
+                <option value="rf">RF Technology</option>
+                <option value="led">LED Therapy</option>
+                <option value="micro">Microcurrent</option>
+                <option value="ultra">Ultrasonic</option>
+                <option value="body">Body Care</option>
+                <option value="cavitation">Cavitation Machine</option>
+                <option value="derma">Dermabrasion</option>
+                <option value="vacuum">Vacuum Therapy</option>
+                <option value="hair">Hair Removal</option>
+                <option value="ems">EMS Machine</option>
+                <option value="sshape">S Shape Machine</option>
+                <option value="cryo">Cryolipolysis</option>
+                <option value="needle">Microneedling</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pTag">Tag</label>
+              <select id="pTag">
+                <option value="">None</option>
+                <option value="Best Seller">Best Seller</option>
+                <option value="New">New</option>
+                <option value="Professional">Professional</option>
+                <option value="Home Use">Home Use</option>
+                <option value="Popular">Popular</option>
+                <option value="Pro Series">Pro Series</option>
+                <option value="Featured">Featured</option>
+                <option value="Limited">Limited</option>
+                <option value="Hot Sale">Hot Sale</option>
+                <option value="Salon Grade">Salon Grade</option>
+                <option value="OEM Ready">OEM Ready</option>
+                <option value="Top Rated">Top Rated</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pBrand">Brand</label>
+              <select id="pBrand">
+                <option value="">Select brand...</option>
+                <option value="MYHBeauty">MYHBeauty</option>
+                <option value="UNOISETION">UNOISETION</option>
+                <option value="ARISTORM">ARISTORM</option>
+                <option value="LUMIERE">LUMIERE</option>
+                <option value="PROSCULPT">PROSCULPT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pArea">Application Area</label>
+              <select id="pArea">
+                <option value="">Select area...</option>
+                <option value="face">Face &amp; Neck</option>
+                <option value="eye">Eye Area</option>
+                <option value="body">Full Body</option>
+                <option value="body_local">Localized Body</option>
+                <option value="scalp">Scalp &amp; Hair</option>
+                <option value="full">Full Body Treatment</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pPrice">Price (USD)</label>
+              <input type="number" id="pPrice" min="0" step="1" placeholder="e.g. 299">
+            </div>
+            <div class="form-group">
+              <label for="pComparePrice">Compare-at Price (USD)</label>
+              <input type="number" id="pComparePrice" min="0" step="1" placeholder="e.g. 399">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="pRating">Rating (0-5)</label>
+              <input type="number" id="pRating" min="0" max="5" step="0.1" placeholder="e.g. 4.8">
+            </div>
+            <div class="form-group">
+              <label for="pReviewCount">Review Count</label>
+              <input type="number" id="pReviewCount" min="0" step="1" placeholder="e.g. 156">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="pDesc">Description * <span class="field-hint">(Rich text — supports formatting)</span></label>
+            <div class="rich-editor">
+              <div class="rich-toolbar" id="richToolbar">
+                <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+                <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+                <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+                <span class="rt-divider"></span>
+                <button type="button" data-cmd="formatBlock" data-value="h4" title="Heading">H4</button>
+                <button type="button" data-cmd="formatBlock" data-value="p" title="Paragraph">P</button>
+                <span class="rt-divider"></span>
+                <button type="button" data-cmd="insertUnorderedList" title="Bullet List">&#8226; List</button>
+                <button type="button" data-cmd="insertOrderedList" title="Numbered List">1. List</button>
+                <span class="rt-divider"></span>
+                <button type="button" data-cmd="createLink" title="Insert Link">Link</button>
+                <button type="button" data-cmd="removeFormat" title="Clear Formatting">Clear</button>
+              </div>
+              <div id="pDesc" class="rich-content" contenteditable="true" data-placeholder="Brief product description..."></div>
+            </div>
+          </div>
+
+          <!-- Product Main Image -->
+          <div class="form-group">
+            <label class="picker-label">Product Main Image</label>
+            <div class="image-upload-area" id="mainImageArea">
+              <div class="image-preview-box" id="mainImagePreview">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                <span>No image</span>
+              </div>
+              <div class="image-input-group">
+                <input type="text" id="pImage" placeholder="Paste image URL (https://...)">
+                <span class="image-divider">or</span>
+                <label class="btn-upload">
+                  <input type="file" id="pImageFile" accept="image/*" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  Upload
+                </label>
+                <button type="button" class="btn-clear-img" id="btnClearMainImage">Remove</button>
+              </div>
+              <p class="image-hint">Used as product thumbnail on cards and main image in detail view.</p>
+            </div>
+          </div>
+
+          <!-- Gallery Images -->
+          <div class="form-group">
+            <label class="picker-label">Detail Gallery Images</label>
+            <div class="gallery-manager" id="galleryManager">
+              <div class="gallery-list" id="galleryList"><!-- gallery items rendered by JS --></div>
+              <div class="gallery-add-row">
+                <input type="text" id="galleryUrlInput" placeholder="Paste image URL">
+                <label class="btn-upload btn-upload-sm">
+                  <input type="file" id="galleryFileInput" accept="image/*" hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                  Upload
+                </label>
+                <button type="button" class="btn-add-gallery" id="btnAddGallery">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add
+                </button>
+              </div>
+              <p class="image-hint">Additional images shown in the product detail popup.</p>
+            </div>
+          </div>
+
+          <!-- Specs Table Editor -->
+          <div class="form-group">
+            <label class="picker-label">Specification Table</label>
+            <div class="specs-editor" id="specsEditor">
+              <div class="specs-list" id="specsList"><!-- spec rows rendered by JS --></div>
+              <button type="button" class="btn-add-spec" id="btnAddSpec">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                Add Spec Row
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="picker-label">Product Icon</label>
+            <div class="icon-grid" id="iconGrid">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="picker-label">Card Color</label>
+            <div class="gradient-grid" id="gradientGrid">
+              <!-- Filled by JS -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="toggle-wrap">
+              <div class="toggle" id="featuredToggle"></div>
+              <span class="toggle-label">Show on homepage featured section</span>
+            </div>
+          </div>
+
+          <div class="product-preview-card">
+            <p style="font-size:var(--fs-xs); letter-spacing:.1em; text-transform:uppercase; color:var(--c-text-soft); margin-bottom:.6rem;">Live Preview</p>
+            <div class="preview-mini">
+              <div class="preview-thumb" id="previewThumb"></div>
+              <div>
+                <h4 id="previewName">Product Name</h4>
+                <p id="previewTag">Tag</p>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-admin btn-admin-outline" onclick="closeModal('productModal')">Cancel</button>
+        <button class="btn-admin btn-admin-primary" id="btnSaveProduct">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Dialog -->
+  <div class="confirm-overlay" id="confirmModal">
+    <div class="confirm-box">
+      <div class="confirm-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+      </div>
+      <h3 id="confirmTitle">Delete Product?</h3>
+      <p id="confirmMessage">This action cannot be undone. The product will be permanently removed from your catalog.</p>
+      <div class="confirm-actions">
+        <button class="btn-admin btn-admin-outline" onclick="closeModal('confirmModal')">Cancel</button>
+        <button class="btn-admin btn-admin-danger" id="btnConfirmAction">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import/Export Modal -->
+  <div class="modal-overlay" id="dataModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="dataModalTitle">Export Data</h2>
+        <button class="modal-close" onclick="closeModal('dataModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="dataModalDesc" style="color:var(--c-text-soft); font-size:var(--fs-sm); margin-bottom:1rem;">
+          Copy the JSON below to backup your product data:
+        </p>
+        <textarea class="data-textarea" id="dataTextarea"></textarea>
+      </div>
+      <div class="modal-footer" id="dataModalFooter">
+        <button class="btn-admin btn-admin-outline" onclick="closeModal('dataModal')">Close</button>
+        <button class="btn-admin btn-admin-primary" id="btnDataAction">Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+    <span id="toastMessage">Success</span>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script>
+    // Auth guard — redirect to login if not authenticated
+    if (!Auth.requireAuth()) {
+      // requireAuth already redirects; stop execution
+      throw new Error('Not authenticated');
+    }
+    // Show current user
+    document.getElementById('adminUser').textContent = 'Hi, ' + Auth.currentUser();
+    // Logout handler
+    document.getElementById('btnLogout').addEventListener('click', function() {
+      if (confirm('Are you sure you want to sign out?')) {
+        Auth.logout();
+      }
+    });
+  </script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
