@@ -971,6 +971,40 @@
 .btn-add-spec svg { width: 14px; height: 14px; }
 
 /* ============================================
+   Storage Indicator
+   ============================================ */
+.storage-bar {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .625rem 1rem;
+  background: #f5f3fa;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: .8rem;
+  color: #666;
+}
+.storage-bar.storage-warn {
+  background: #fff3e0;
+  color: #e65100;
+}
+.storage-label { white-space: nowrap; }
+.storage-track {
+  flex: 1;
+  height: 6px;
+  background: #e0dde8;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.storage-fill {
+  height: 100%;
+  background: #660099;
+  border-radius: 3px;
+  transition: width .3s ease;
+}
+.storage-warn .storage-fill { background: #e65100; }
+
+/* ============================================
    Rich Text Editor (Product Description)
    ============================================ */
 .field-hint {

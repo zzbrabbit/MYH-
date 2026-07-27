@@ -690,10 +690,11 @@ const Store = {
     return products;
   },
 
-  /* Save entire product array */
+  /* Save entire product array — returns true on success, false on failure */
   saveProducts(products) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+      const json = JSON.stringify(products);
+      localStorage.setItem(STORAGE_KEY, json);
       return true;
     } catch (e) {
       console.error('Store: Failed to save products.', e);
@@ -701,38 +702,57 @@ const Store = {
     }
   },
 
+  /* Check localStorage usage — returns { used, quota, percent } */
+  getStorageInfo() {
+    let used = 0;
+    try {
+      const data = localStorage.getItem(STORAGE_KEY) || '';
+      const content = localStorage.getItem('myhbeauty_content') || '';
+      used = data.length + content.length;
+    } catch (e) { /* ignore */ }
+    // Most browsers allow ~5MB (5,242,880 chars) for localStorage
+    const quota = 5 * 1024 * 1024;
+    return {
+      used: used,
+      quota: quota,
+      percent: Math.round(used / quota * 100),
+      usedKB: Math.round(used / 1024),
+      quotaKB: Math.round(quota / 1024)
+    };
+  },
+
   /* Get a single product by id */
   getProduct(id) {
     return this.getProducts().find(p => p.id === id) || null;
   },
 
-  /* Add a new product */
+  /* Add a new product — returns product on success, null on failure */
   addProduct(product) {
     const products = this.getProducts();
     product.id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     product.createdAt = new Date().toISOString().split('T')[0];
     products.unshift(product);
-    this.saveProducts(products);
-    return product;
+    const ok = this.saveProducts(products);
+    return ok ? product : null;
   },
 
-  /* Update an existing product */
+  /* Update an existing product — returns updated product on success, null on failure */
   updateProduct(id, updates) {
     const products = this.getProducts();
     const index = products.findIndex(p => p.id === id);
     if (index !== -1) {
       products[index] = { ...products[index], ...updates, id, createdAt: products[index].createdAt };
-      this.saveProducts(products);
-      return products[index];
+      const ok = this.saveProducts(products);
+      return ok ? products[index] : null;
     }
     return null;
   },
 
-  /* Delete a product */
+  /* Delete a product — returns products array on success, null on failure */
   deleteProduct(id) {
     const products = this.getProducts().filter(p => p.id !== id);
-    this.saveProducts(products);
-    return products;
+    const ok = this.saveProducts(products);
+    return ok ? products : null;
   },
 
   /* Reset to default data */
@@ -1160,6 +1180,59 @@ const Auth = {
     return true;
   }
 };
+
+/* ============================================
+   Image Compression Utility
+   Compresses images before storing in localStorage
+   ============================================ */
+
+/* Compress an image file to a base64 data URL.
+   - maxWidth: resize to this width (keeps aspect ratio)
+   - quality: JPEG quality 0-1
+   Returns a Promise that resolves to { dataUrl, sizeKB } */
+function compressImage(file, maxWidth, quality) {
+  maxWidth = maxWidth || 800;
+  quality = quality || 0.7;
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Not an image file'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const img = new Image();
+      img.onload = function() {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxWidth) {
+          h = Math.round(h * maxWidth / w);
+          w = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve({
+          dataUrl: dataUrl,
+          sizeKB: Math.round(dataUrl.length / 1024)
+        });
+      };
+      img.onerror = function() { reject(new Error('Failed to load image')); };
+      img.src = ev.target.result;
+    };
+    reader.onerror = function() { reject(new Error('Failed to read file')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Check if a string is a base64 data URL */
+function isDataUrl(str) {
+  return typeof str === 'string' && str.startsWith('data:');
+}
 
 /* ============================================
    Content Management Module (CMS)

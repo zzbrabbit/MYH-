@@ -50,6 +50,18 @@ function renderStats() {
       </div>
     </div>
   `).join('');
+
+  updateStorageIndicator();
+}
+
+/* ---------- Storage Indicator ---------- */
+function updateStorageIndicator() {
+  const el = $('#storageIndicator');
+  if (!el) return;
+  const info = Store.getStorageInfo();
+  const warnClass = info.percent > 80 ? 'storage-warn' : '';
+  el.className = 'storage-bar ' + warnClass;
+  el.innerHTML = '<span class="storage-label">Storage: ' + info.usedKB + 'KB / ' + info.quotaKB + 'KB (' + info.percent + '%)</span><div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
 }
 
 /* ---------- Render Table ---------- */
@@ -177,22 +189,24 @@ function initImageUploader() {
     }
   });
 
-  // File upload
-  fileInput.addEventListener('change', (e) => {
+  // File upload — auto-compress before storing
+  fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Image too large (max 2MB). Please use a URL instead.', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image too large (max 10MB). Please use a smaller image.', 'error');
       fileInput.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      urlInput.value = dataUrl;
-      preview.innerHTML = '<img src="' + dataUrl + '" alt="Preview">';
-    };
-    reader.readAsDataURL(file);
+    try {
+      showToast('Compressing image...', 'success');
+      const result = await compressImage(file, 800, 0.7);
+      urlInput.value = result.dataUrl;
+      preview.innerHTML = '<img src="' + result.dataUrl + '" alt="Preview">';
+      showToast('Image ready (' + result.sizeKB + 'KB)', 'success');
+    } catch (err) {
+      showToast('Failed to process image: ' + err.message, 'error');
+    }
     fileInput.value = '';
   });
 
@@ -240,20 +254,23 @@ function initGalleryManager() {
     }
   });
 
-  fileInput.addEventListener('change', (e) => {
+  fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Image too large (max 2MB)', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+      showToast('Image too large (max 10MB)', 'error');
       fileInput.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      galleryImages.push(ev.target.result);
+    try {
+      showToast('Compressing image...', 'success');
+      const result = await compressImage(file, 800, 0.7);
+      galleryImages.push(result.dataUrl);
       renderGallery();
-    };
-    reader.readAsDataURL(file);
+      showToast('Image added (' + result.sizeKB + 'KB)', 'success');
+    } catch (err) {
+      showToast('Failed to process image: ' + err.message, 'error');
+    }
     fileInput.value = '';
   });
 }
@@ -475,16 +492,27 @@ function saveProduct() {
   };
 
   if (currentEditId) {
-    Store.updateProduct(currentEditId, productData);
+    const result = Store.updateProduct(currentEditId, productData);
+    if (!result) {
+      const info = Store.getStorageInfo();
+      showToast('Save failed! Storage ' + info.percent + '% full (' + info.usedKB + 'KB/' + info.quotaKB + 'KB). Use smaller images or delete unused products.', 'error');
+      return;
+    }
     showToast('Product updated successfully', 'success');
   } else {
-    Store.addProduct(productData);
+    const result = Store.addProduct(productData);
+    if (!result) {
+      const info = Store.getStorageInfo();
+      showToast('Save failed! Storage ' + info.percent + '% full (' + info.usedKB + 'KB/' + info.quotaKB + 'KB). Use smaller images or delete unused products.', 'error');
+      return;
+    }
     showToast('Product added successfully', 'success');
   }
 
   closeModal('productModal');
   renderStats();
   renderTable();
+  updateStorageIndicator();
 }
 
 /* ---------- Delete ---------- */
@@ -497,11 +525,16 @@ function confirmDelete(id) {
   $('#btnConfirmAction').textContent = 'Delete';
 
   confirmCallback = () => {
-    Store.deleteProduct(id);
-    showToast('Product deleted', 'success');
-    closeModal('confirmModal');
-    renderStats();
-    renderTable();
+    const result = Store.deleteProduct(id);
+    if (result) {
+      showToast('Product deleted', 'success');
+      closeModal('confirmModal');
+      renderStats();
+      renderTable();
+      updateStorageIndicator();
+    } else {
+      showToast('Delete failed! Please try again.', 'error');
+    }
   };
 
   openModal('confirmModal');
@@ -865,22 +898,26 @@ function renderContentEditor(page, container) {
 
   container.innerHTML = html;
 
-  // Handle image uploads
+  // Handle image uploads — with compression
   container.querySelectorAll('[data-cms-upload]').forEach(input => {
-    input.addEventListener('change', function(e) {
+    input.addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
       const itemId = this.dataset.cmsUpload;
-      const reader = new FileReader();
-      reader.onload = function(ev) {
+      try {
+        showToast('Compressing image...', 'success');
+        const result = await compressImage(file, 800, 0.7);
         const textInput = container.querySelector('input[data-cms-id="' + itemId + '"]');
         if (textInput) {
-          textInput.value = ev.target.result;
+          textInput.value = result.dataUrl;
           const img = textInput.closest('.content-field-image').querySelector('img');
-          if (img) img.src = ev.target.result;
+          if (img) img.src = result.dataUrl;
         }
-      };
-      reader.readAsDataURL(file);
+        showToast('Image ready (' + result.sizeKB + 'KB)', 'success');
+      } catch (err) {
+        showToast('Failed to process image: ' + err.message, 'error');
+      }
+      this.value = '';
     });
   });
 }
