@@ -629,43 +629,66 @@ const STORAGE_KEY = 'myhbeauty_products';
 
 /* ---------- Store API ---------- */
 const Store = {
-  /* Get all products */
-  getProducts() {
-    let products;
-    try {
-      const data = localStorage.getItem(STORAGE_KEY);
-      if (data) {
-        products = JSON.parse(data);
-      }
-    } catch (e) {
-      console.warn('Store: Failed to read products, using defaults.', e);
-    }
-    if (!products) {
-      // First visit — seed with defaults
-      products = [...DEFAULT_PRODUCTS];
-      this.saveProducts(products);
-    }
+  _cache: null,
+  _ready: null,
+  _extraFields: {
+    p001: { brand: 'MYHBeauty',  price: 289,  comparePrice: 359,  rating: 4.8, reviewCount: 156, area: 'face' },
+    p002: { brand: 'ARISTORM',   price: 599,  comparePrice: 749,  rating: 4.7, reviewCount: 89,  area: 'face' },
+    p003: { brand: 'MYHBeauty',  price: 199,  comparePrice: 259,  rating: 4.9, reviewCount: 312, area: 'face' },
+    p004: { brand: 'LUMIERE',    price: 89,   comparePrice: 119,  rating: 4.5, reviewCount: 78,  area: 'face' },
+    p005: { brand: 'MYHBeauty',  price: 159,  comparePrice: 199,  rating: 4.6, reviewCount: 203, area: 'face' },
+    p006: { brand: 'PROSCULPT',  price: 129,  comparePrice: 169,  rating: 4.4, reviewCount: 67,  area: 'eye' },
+    p007: { brand: 'MYHBeauty',  price: 79,   comparePrice: 99,   rating: 4.7, reviewCount: 145, area: 'face' },
+    p008: { brand: 'ARISTORM',   price: 249,  comparePrice: 299,  rating: 4.5, reviewCount: 56,  area: 'face' },
+    p009: { brand: 'ARISTORM',   price: 459,  comparePrice: 599,  rating: 4.8, reviewCount: 178, area: 'body' },
+    p010: { brand: 'LUMIERE',    price: 189,  comparePrice: 239,  rating: 4.3, reviewCount: 92,  area: 'body_local' },
+    p011: { brand: 'MYHBeauty',  price: 139,  comparePrice: 179,  rating: 4.6, reviewCount: 134, area: 'face' },
+    p012: { brand: 'ARISTORM',   price: 899,  comparePrice: 1099, rating: 4.9, reviewCount: 45,  area: 'full' }
+  },
 
-    // Migration: ensure all products have image/gallery/specs fields
-    // (for backward compat with data saved before these fields existed)
+  /* Initialize storage and load products into memory cache */
+  async init() {
+    if (this._ready) return this._ready;
+    this._ready = (async () => {
+      await DBStorage.init();
+
+      // Try to load from IndexedDB first
+      let products = await DBStorage.getItem(STORAGE_KEY);
+
+      // If nothing in IndexedDB, attempt to migrate legacy localStorage data
+      if (!products) {
+        try {
+          const legacy = localStorage.getItem(STORAGE_KEY);
+          if (legacy) {
+            const parsed = JSON.parse(legacy);
+            if (Array.isArray(parsed) && parsed.length) {
+              products = parsed;
+              await DBStorage.setItem(STORAGE_KEY, products);
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
+
+      if (!products) {
+        products = [...DEFAULT_PRODUCTS];
+        await DBStorage.setItem(STORAGE_KEY, products);
+      }
+
+      // Run migrations and cache
+      products = this._migrateProducts(products);
+      this._cache = products;
+
+      // Free legacy localStorage space now that data lives in IndexedDB
+      await clearLegacyStorage();
+      return true;
+    })();
+    return this._ready;
+  },
+
+  /* Migration: ensure all products have required fields */
+  _migrateProducts(products) {
     const defaultMap = {};
     DEFAULT_PRODUCTS.forEach(p => { defaultMap[p.id] = p; });
-
-    // Extra fields for original products (p001-p012) that predate price/brand/rating
-    const EXTRA_FIELDS = {
-      p001: { brand: 'MYHBeauty',  price: 289,  comparePrice: 359,  rating: 4.8, reviewCount: 156, area: 'face' },
-      p002: { brand: 'ARISTORM',   price: 599,  comparePrice: 749,  rating: 4.7, reviewCount: 89,  area: 'face' },
-      p003: { brand: 'MYHBeauty',  price: 199,  comparePrice: 259,  rating: 4.9, reviewCount: 312, area: 'face' },
-      p004: { brand: 'LUMIERE',    price: 89,   comparePrice: 119,  rating: 4.5, reviewCount: 78,  area: 'face' },
-      p005: { brand: 'MYHBeauty',  price: 159,  comparePrice: 199,  rating: 4.6, reviewCount: 203, area: 'face' },
-      p006: { brand: 'PROSCULPT',  price: 129,  comparePrice: 169,  rating: 4.4, reviewCount: 67,  area: 'eye' },
-      p007: { brand: 'MYHBeauty',  price: 79,   comparePrice: 99,   rating: 4.7, reviewCount: 145, area: 'face' },
-      p008: { brand: 'ARISTORM',   price: 249,  comparePrice: 299,  rating: 4.5, reviewCount: 56,  area: 'face' },
-      p009: { brand: 'ARISTORM',   price: 459,  comparePrice: 599,  rating: 4.8, reviewCount: 178, area: 'body' },
-      p010: { brand: 'LUMIERE',    price: 189,  comparePrice: 239,  rating: 4.3, reviewCount: 92,  area: 'body_local' },
-      p011: { brand: 'MYHBeauty',  price: 139,  comparePrice: 179,  rating: 4.6, reviewCount: 134, area: 'face' },
-      p012: { brand: 'ARISTORM',   price: 899,  comparePrice: 1099, rating: 4.9, reviewCount: 45,  area: 'full' }
-    };
 
     let needsSave = false;
     products = products.map(p => {
@@ -673,8 +696,7 @@ const Store = {
       if (!p.image) { p.image = dp ? dp.image : ''; needsSave = true; }
       if (!Array.isArray(p.gallery)) { p.gallery = dp ? dp.gallery : []; needsSave = true; }
       if (!Array.isArray(p.specs)) { p.specs = dp ? dp.specs : []; needsSave = true; }
-      // Supplement new fields for legacy products
-      const extra = EXTRA_FIELDS[p.id];
+      const extra = this._extraFields[p.id];
       if (extra) {
         if (!p.brand)        { p.brand = extra.brand; needsSave = true; }
         if (!p.price)        { p.price = extra.price; needsSave = true; }
@@ -686,38 +708,41 @@ const Store = {
       return p;
     });
 
-    if (needsSave) this.saveProducts(products);
+    if (needsSave) {
+      DBStorage.setItem(STORAGE_KEY, products).catch(() => {});
+    }
     return products;
   },
 
-  /* Save entire product array — returns true on success, false on failure */
-  saveProducts(products) {
-    try {
-      const json = JSON.stringify(products);
-      localStorage.setItem(STORAGE_KEY, json);
-      return true;
-    } catch (e) {
-      console.error('Store: Failed to save products.', e);
-      return false;
-    }
+  /* Get all products (sync from cache) */
+  getProducts() {
+    return this._cache || [...DEFAULT_PRODUCTS];
   },
 
-  /* Check localStorage usage — returns { used, quota, percent } */
-  getStorageInfo() {
-    let used = 0;
-    try {
-      const data = localStorage.getItem(STORAGE_KEY) || '';
-      const content = localStorage.getItem('myhbeauty_content') || '';
-      used = data.length + content.length;
-    } catch (e) { /* ignore */ }
-    // Most browsers allow ~5MB (5,242,880 chars) for localStorage
-    const quota = 5 * 1024 * 1024;
+  /* Save entire product array — returns true on success, false on failure */
+  async saveProducts(products) {
+    this._cache = products;
+    const ok = await DBStorage.setItem(STORAGE_KEY, products);
+    if (!ok) {
+      console.error('Store: Failed to save products.');
+      return false;
+    }
+    return true;
+  },
+
+  /* Estimate storage usage — returns { used, quota, percent, usedKB, quotaKB, source } */
+  async getStorageInfo() {
+    const used = await DBStorage.estimateSize();
+    // IndexedDB quota is device-dependent; report a conservative 50MB estimate
+    const quota = 50 * 1024 * 1024;
+    const source = DBStorage.fallbackToLocalStorage ? 'localStorage (fallback)' : 'IndexedDB';
     return {
       used: used,
       quota: quota,
-      percent: Math.round(used / quota * 100),
+      percent: Math.min(100, Math.round(used / quota * 100)),
       usedKB: Math.round(used / 1024),
-      quotaKB: Math.round(quota / 1024)
+      quotaKB: Math.round(quota / 1024),
+      source: source
     };
   },
 
@@ -727,37 +752,37 @@ const Store = {
   },
 
   /* Add a new product — returns product on success, null on failure */
-  addProduct(product) {
+  async addProduct(product) {
     const products = this.getProducts();
     product.id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     product.createdAt = new Date().toISOString().split('T')[0];
     products.unshift(product);
-    const ok = this.saveProducts(products);
+    const ok = await this.saveProducts(products);
     return ok ? product : null;
   },
 
   /* Update an existing product — returns updated product on success, null on failure */
-  updateProduct(id, updates) {
+  async updateProduct(id, updates) {
     const products = this.getProducts();
     const index = products.findIndex(p => p.id === id);
     if (index !== -1) {
       products[index] = { ...products[index], ...updates, id, createdAt: products[index].createdAt };
-      const ok = this.saveProducts(products);
+      const ok = await this.saveProducts(products);
       return ok ? products[index] : null;
     }
     return null;
   },
 
   /* Delete a product — returns products array on success, null on failure */
-  deleteProduct(id) {
+  async deleteProduct(id) {
     const products = this.getProducts().filter(p => p.id !== id);
-    const ok = this.saveProducts(products);
+    const ok = await this.saveProducts(products);
     return ok ? products : null;
   },
 
   /* Reset to default data */
-  resetToDefault() {
-    this.saveProducts(DEFAULT_PRODUCTS);
+  async resetToDefault() {
+    await this.saveProducts([...DEFAULT_PRODUCTS]);
     return [...DEFAULT_PRODUCTS];
   },
 
@@ -767,15 +792,14 @@ const Store = {
   },
 
   /* Import data from JSON string */
-  importData(jsonString) {
+  async importData(jsonString) {
     try {
       const data = JSON.parse(jsonString);
       if (Array.isArray(data)) {
-        // Validate basic structure
         const valid = data.every(p => p.name && p.category);
         if (valid) {
-          this.saveProducts(data);
-          return { success: true, count: data.length };
+          const ok = await this.saveProducts(data);
+          return ok ? { success: true, count: data.length } : { success: false, error: 'Failed to save imported data. Storage may be full.' };
         }
       }
       return { success: false, error: 'Invalid data format. Expected an array of products with name and category fields.' };
@@ -1182,17 +1206,145 @@ const Auth = {
 };
 
 /* ============================================
+   IndexedDB Storage Layer
+   Replaces localStorage for large product/CMS data
+   Falls back to localStorage if IndexedDB unavailable
+   ============================================ */
+
+const DBStorage = {
+  dbName: 'MYHBeautyDB',
+  storeName: 'appData',
+  version: 1,
+  db: null,
+  fallbackToLocalStorage: false,
+
+  /* Initialize IndexedDB; returns true on success */
+  async init() {
+    if (this.db) return true;
+    if (!window.indexedDB) {
+      this.fallbackToLocalStorage = true;
+      return false;
+    }
+    try {
+      return await new Promise((resolve) => {
+        const request = indexedDB.open(this.dbName, this.version);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(this.storeName)) {
+            db.createObjectStore(this.storeName, { keyPath: 'key' });
+          }
+        };
+        request.onsuccess = (e) => {
+          this.db = e.target.result;
+          resolve(true);
+        };
+        request.onerror = () => {
+          this.fallbackToLocalStorage = true;
+          resolve(false);
+        };
+        request.onblocked = () => {
+          this.fallbackToLocalStorage = true;
+          resolve(false);
+        };
+      });
+    } catch (e) {
+      this.fallbackToLocalStorage = true;
+      return false;
+    }
+  },
+
+  /* Read a value by key */
+  async getItem(key) {
+    if (this.fallbackToLocalStorage) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return await new Promise((resolve) => {
+      const tx = this.db.transaction([this.storeName], 'readonly');
+      const store = tx.objectStore(this.storeName);
+      const request = store.get(key);
+      request.onsuccess = () => {
+        const result = request.result;
+        resolve(result ? result.value : null);
+      };
+      request.onerror = () => resolve(null);
+    });
+  },
+
+  /* Write a value by key — returns true on success */
+  async setItem(key, value) {
+    if (this.fallbackToLocalStorage) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    return await new Promise((resolve) => {
+      const tx = this.db.transaction([this.storeName], 'readwrite');
+      const store = tx.objectStore(this.storeName);
+      const request = store.put({ key: key, value: value, updatedAt: Date.now() });
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => resolve(false);
+    });
+  },
+
+  /* Remove a value by key */
+  async removeItem(key) {
+    if (this.fallbackToLocalStorage) {
+      localStorage.removeItem(key);
+      return true;
+    }
+    return await new Promise((resolve) => {
+      const tx = this.db.transaction([this.storeName], 'readwrite');
+      const store = tx.objectStore(this.storeName);
+      const request = store.delete(key);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => resolve(false);
+    });
+  },
+
+  /* Estimate total bytes used for MYHBeauty keys */
+  async estimateSize() {
+    let total = 0;
+    const keys = [STORAGE_KEY, CONTENT_KEY];
+    for (const key of keys) {
+      try {
+        const val = await this.getItem(key);
+        if (val) total += JSON.stringify(val).length;
+      } catch (e) { /* ignore */ }
+    }
+    return total;
+  }
+};
+
+/* Clear legacy localStorage entries after migration to free up space */
+async function clearLegacyStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(CONTENT_KEY);
+  } catch (e) { /* ignore */ }
+}
+
+/* ============================================
    Image Compression Utility
-   Compresses images before storing in localStorage
+   Compresses images before storing in IndexedDB
    ============================================ */
 
 /* Compress an image file to a base64 data URL.
    - maxWidth: resize to this width (keeps aspect ratio)
    - quality: JPEG quality 0-1
+   - maxFileSizeKB: if result exceeds this, re-compress with lower quality
    Returns a Promise that resolves to { dataUrl, sizeKB } */
-function compressImage(file, maxWidth, quality) {
-  maxWidth = maxWidth || 800;
-  quality = quality || 0.7;
+function compressImage(file, maxWidth, quality, maxFileSizeKB) {
+  maxWidth = maxWidth || 600;
+  quality = typeof quality === 'number' ? quality : 0.6;
+  maxFileSizeKB = maxFileSizeKB || 120;
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
       reject(new Error('Not an image file'));
@@ -1202,24 +1354,33 @@ function compressImage(file, maxWidth, quality) {
     reader.onload = function(ev) {
       const img = new Image();
       img.onload = function() {
-        let w = img.width;
-        let h = img.height;
-        if (w > maxWidth) {
-          h = Math.round(h * maxWidth / w);
-          w = maxWidth;
+        function tryCompress(currentQuality) {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = Math.round(h * maxWidth / w);
+            w = maxWidth;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+          const sizeKB = Math.round(dataUrl.length / 1024);
+          if (sizeKB > maxFileSizeKB && currentQuality > 0.35 && maxWidth > 300) {
+            // Re-compress more aggressively
+            return tryCompress(Math.max(0.35, currentQuality - 0.12));
+          }
+          return { dataUrl: dataUrl, sizeKB: sizeKB };
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve({
-          dataUrl: dataUrl,
-          sizeKB: Math.round(dataUrl.length / 1024)
-        });
+        try {
+          resolve(tryCompress(quality));
+        } catch (e) {
+          reject(new Error('Failed to compress image'));
+        }
       };
       img.onerror = function() { reject(new Error('Failed to load image')); };
       img.src = ev.target.result;
@@ -1428,6 +1589,30 @@ const PAGE_CONTENT_SCHEMA = {
 const CONTENT_KEY = 'myhbeauty_content';
 
 const Content = {
+  _cache: null,
+  _ready: null,
+
+  /* Initialize content cache from IndexedDB, migrate from localStorage if needed */
+  async init() {
+    if (this._ready) return this._ready;
+    this._ready = (async () => {
+      await DBStorage.init();
+      let all = await DBStorage.getItem(CONTENT_KEY);
+      if (!all) {
+        try {
+          const legacy = localStorage.getItem(CONTENT_KEY);
+          if (legacy) {
+            all = JSON.parse(legacy);
+            await DBStorage.setItem(CONTENT_KEY, all);
+          }
+        } catch (e) { /* ignore */ }
+      }
+      this._cache = all || {};
+      return true;
+    })();
+    return this._ready;
+  },
+
   /* Get the current page key from URL */
   getCurrentPage() {
     const path = window.location.pathname.split('/').pop() || 'index.html';
@@ -1436,32 +1621,33 @@ const Content = {
   },
 
   /* Get all saved content overrides */
-  getAll() {
-    try {
-      return JSON.parse(localStorage.getItem(CONTENT_KEY)) || {};
-    } catch (e) {
-      return {};
-    }
+  async getAll() {
+    await this.init();
+    return this._cache || {};
   },
 
   /* Get saved overrides for a specific page */
-  getPage(page) {
-    const all = this.getAll();
+  async getPage(page) {
+    const all = await this.getAll();
     return all[page] || {};
   },
 
   /* Save overrides for a specific page */
-  savePage(page, values) {
-    const all = this.getAll();
+  async savePage(page, values) {
+    const all = await this.getAll();
     all[page] = values;
-    localStorage.setItem(CONTENT_KEY, JSON.stringify(all));
+    const ok = await DBStorage.setItem(CONTENT_KEY, all);
+    if (ok) this._cache = all;
+    return ok;
   },
 
   /* Reset a page to defaults (remove overrides) */
-  resetPage(page) {
-    const all = this.getAll();
+  async resetPage(page) {
+    const all = await this.getAll();
     delete all[page];
-    localStorage.setItem(CONTENT_KEY, JSON.stringify(all));
+    const ok = await DBStorage.setItem(CONTENT_KEY, all);
+    if (ok) this._cache = all;
+    return ok;
   },
 
   /* Find a DOM element for a schema item */
@@ -1481,11 +1667,12 @@ const Content = {
   },
 
   /* Apply saved overrides to the current page's DOM */
-  apply() {
+  async apply() {
+    await this.init();
     const page = this.getCurrentPage();
     if (!page) return;
     const schema = PAGE_CONTENT_SCHEMA[page];
-    const overrides = this.getPage(page);
+    const overrides = this._cache[page] || {};
 
     schema.groups.forEach(group => {
       group.items.forEach(item => {

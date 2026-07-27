@@ -2,11 +2,15 @@
    MYHBeauty — Main JavaScript
    ============================================ */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+
+  // Initialize storage before any reads/writes
+  if (typeof Store !== 'undefined') await Store.init();
+  if (typeof Content !== 'undefined') await Content.init();
 
   /* ---------- Apply CMS Content Overrides ---------- */
   if (typeof Content !== 'undefined') {
-    Content.apply();
+    await Content.apply();
   }
 
   /* ---------- Page Loader ---------- */

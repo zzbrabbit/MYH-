@@ -15,7 +15,11 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 /* ---------- Init ---------- */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize storage before any reads/writes
+  if (typeof Store !== 'undefined') await Store.init();
+  if (typeof Content !== 'undefined') await Content.init();
+
   renderStats();
   renderTable();
   initIconPicker();
@@ -55,13 +59,13 @@ function renderStats() {
 }
 
 /* ---------- Storage Indicator ---------- */
-function updateStorageIndicator() {
+async function updateStorageIndicator() {
   const el = $('#storageIndicator');
   if (!el) return;
-  const info = Store.getStorageInfo();
+  const info = await Store.getStorageInfo();
   const warnClass = info.percent > 80 ? 'storage-warn' : '';
   el.className = 'storage-bar ' + warnClass;
-  el.innerHTML = '<span class="storage-label">Storage: ' + info.usedKB + 'KB / ' + info.quotaKB + 'KB (' + info.percent + '%)</span><div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
+  el.innerHTML = '<span class="storage-label">Storage: ' + info.usedKB + 'KB / ' + info.quotaKB + 'KB (' + info.percent + '%) · ' + escapeHtml(info.source) + '</span><div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
 }
 
 /* ---------- Render Table ---------- */
@@ -442,7 +446,7 @@ function openEditModal(id) {
 }
 
 /* ---------- Save Product ---------- */
-function saveProduct() {
+async function saveProduct() {
   const name = $('#pName').value.trim();
   const category = $('#pCategory').value;
   const tag = $('#pTag').value;
@@ -492,17 +496,17 @@ function saveProduct() {
   };
 
   if (currentEditId) {
-    const result = Store.updateProduct(currentEditId, productData);
+    const result = await Store.updateProduct(currentEditId, productData);
     if (!result) {
-      const info = Store.getStorageInfo();
+      const info = await Store.getStorageInfo();
       showToast('Save failed! Storage ' + info.percent + '% full (' + info.usedKB + 'KB/' + info.quotaKB + 'KB). Use smaller images or delete unused products.', 'error');
       return;
     }
     showToast('Product updated successfully', 'success');
   } else {
-    const result = Store.addProduct(productData);
+    const result = await Store.addProduct(productData);
     if (!result) {
-      const info = Store.getStorageInfo();
+      const info = await Store.getStorageInfo();
       showToast('Save failed! Storage ' + info.percent + '% full (' + info.usedKB + 'KB/' + info.quotaKB + 'KB). Use smaller images or delete unused products.', 'error');
       return;
     }
@@ -512,7 +516,7 @@ function saveProduct() {
   closeModal('productModal');
   renderStats();
   renderTable();
-  updateStorageIndicator();
+  await updateStorageIndicator();
 }
 
 /* ---------- Delete ---------- */
@@ -524,14 +528,14 @@ function confirmDelete(id) {
   $('#confirmMessage').innerHTML = `Are you sure you want to delete <strong>${escapeHtml(product.name)}</strong>? This action cannot be undone.`;
   $('#btnConfirmAction').textContent = 'Delete';
 
-  confirmCallback = () => {
-    const result = Store.deleteProduct(id);
+  confirmCallback = async () => {
+    const result = await Store.deleteProduct(id);
     if (result) {
       showToast('Product deleted', 'success');
       closeModal('confirmModal');
       renderStats();
       renderTable();
-      updateStorageIndicator();
+      await updateStorageIndicator();
     } else {
       showToast('Delete failed! Please try again.', 'error');
     }
@@ -562,18 +566,19 @@ function openImportModal() {
   openModal('dataModal');
 }
 
-function importData() {
+async function importData() {
   const json = $('#dataTextarea').value.trim();
   if (!json) {
     showToast('Please paste JSON data first', 'error');
     return;
   }
-  const result = Store.importData(json);
+  const result = await Store.importData(json);
   if (result.success) {
     showToast(`Imported ${result.count} products successfully`, 'success');
     closeModal('dataModal');
     renderStats();
     renderTable();
+    await updateStorageIndicator();
   } else {
     showToast(result.error, 'error');
   }
@@ -596,12 +601,13 @@ function confirmReset() {
   $('#confirmMessage').innerHTML = 'This will replace all your products with the original 12 default products. Your custom data will be lost.';
   $('#btnConfirmAction').textContent = 'Reset';
 
-  confirmCallback = () => {
-    Store.resetToDefault();
+  confirmCallback = async () => {
+    await Store.resetToDefault();
     showToast('Products reset to defaults', 'success');
     closeModal('confirmModal');
     renderStats();
     renderTable();
+    await updateStorageIndicator();
   };
 
   openModal('confirmModal');
@@ -795,7 +801,7 @@ window.closeModal = closeModal;
 /* ---------- Content Editor ---------- */
 let currentContentPage = 'index';
 
-function loadContentEditor() {
+async function loadContentEditor() {
   const select = document.getElementById('contentPageSelect');
   const editorArea = document.getElementById('contentEditorArea');
   const hintEl = document.getElementById('contentPageHint');
@@ -805,16 +811,16 @@ function loadContentEditor() {
   currentContentPage = select.value || 'index';
 
   // If first load, populate hint
-  updateContentHint(currentContentPage, hintEl);
+  await updateContentHint(currentContentPage, hintEl);
 
   // Render the editor for the current page
-  renderContentEditor(currentContentPage, editorArea);
+  await renderContentEditor(currentContentPage, editorArea);
 
   // Handle page selection change
-  select.onchange = function() {
+  select.onchange = async function() {
     currentContentPage = this.value;
-    updateContentHint(currentContentPage, hintEl);
-    renderContentEditor(currentContentPage, editorArea);
+    await updateContentHint(currentContentPage, hintEl);
+    await renderContentEditor(currentContentPage, editorArea);
   };
 
   // Save button
@@ -830,9 +836,9 @@ function loadContentEditor() {
   }
 }
 
-function updateContentHint(page, hintEl) {
+async function updateContentHint(page, hintEl) {
   if (!hintEl || !Content) return;
-  const overrides = Content.getPage(page);
+  const overrides = await Content.getPage(page);
   const count = Object.keys(overrides).length;
   const schema = Content.getSchema()[page];
   const total = schema ? schema.groups.reduce((sum, g) => sum + g.items.length, 0) : 0;
@@ -841,7 +847,7 @@ function updateContentHint(page, hintEl) {
     : total + ' editable fields available';
 }
 
-function renderContentEditor(page, container) {
+async function renderContentEditor(page, container) {
   if (!Content || !container) return;
   const schema = Content.getSchema()[page];
   if (!schema) {
@@ -849,7 +855,7 @@ function renderContentEditor(page, container) {
     return;
   }
 
-  const overrides = Content.getPage(page);
+  const overrides = await Content.getPage(page);
   let html = '';
 
   schema.groups.forEach(group => {
@@ -922,7 +928,7 @@ function renderContentEditor(page, container) {
   });
 }
 
-function saveContentChanges() {
+async function saveContentChanges() {
   if (!Content || !currentContentPage) return;
   const inputs = document.querySelectorAll('#contentEditorArea .content-input');
   const values = {};
@@ -937,18 +943,22 @@ function saveContentChanges() {
     }
   });
 
-  Content.savePage(currentContentPage, values);
+  const ok = await Content.savePage(currentContentPage, values);
+  if (!ok) {
+    showToast('Failed to save page content. Storage may be full.', 'error');
+    return;
+  }
   showToast(changedCount + ' fields saved for ' + Content.getSchema()[currentContentPage].label);
-  updateContentHint(currentContentPage, document.getElementById('contentPageHint'));
+  await updateContentHint(currentContentPage, document.getElementById('contentPageHint'));
 }
 
-function resetContentPage() {
+async function resetContentPage() {
   if (!Content || !currentContentPage) return;
   if (!confirm('Reset all content changes for ' + Content.getSchema()[currentContentPage].label + '? This will restore the original text and images.')) {
     return;
   }
-  Content.resetPage(currentContentPage);
+  await Content.resetPage(currentContentPage);
   showToast('Page content reset to defaults');
-  renderContentEditor(currentContentPage, document.getElementById('contentEditorArea'));
-  updateContentHint(currentContentPage, document.getElementById('contentPageHint'));
+  await renderContentEditor(currentContentPage, document.getElementById('contentEditorArea'));
+  await updateContentHint(currentContentPage, document.getElementById('contentPageHint'));
 }
