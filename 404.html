@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 — Page Not Found | MYHBeauty</title>
+  <meta name="description" content="The page you are looking for could not be found. Explore MYHBeauty's professional beauty instruments.">
+  <meta name="robots" content="noindex, follow">
+  <meta http-equiv="refresh" content="3;url=index.html">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { margin: 0; }
+    .error-wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, #faf6ff 0%, #f3e8ff 100%);
+    }
+    .error-code {
+      font-family: var(--ff-serif);
+      font-size: clamp(6rem, 18vw, 12rem);
+      font-weight: 600;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--c-accent), var(--c-rose));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0;
+    }
+    .error-title {
+      font-family: var(--ff-serif);
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      color: var(--c-dark);
+      margin: 1rem 0 .5rem;
+    }
+    .error-text {
+      font-family: var(--ff-sans);
+      font-size: 1.05rem;
+      color: var(--c-text-soft);
+      max-width: 480px;
+      margin: 0 0 2rem;
+      line-height: 1.6;
+    }
+    .error-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .error-actions .btn { min-width: 160px; }
+    .error-home {
+      margin-top: 3rem;
+      font-family: var(--ff-sans);
+      font-size: .9rem;
+      color: var(--c-text-soft);
+    }
+    .error-home a {
+      color: var(--c-accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .error-home a:hover { text-decoration: underline; }
+    .countdown {
+      font-family: var(--ff-sans);
+      font-size: .95rem;
+      color: var(--c-accent);
+      margin-top: 1.5rem;
+      font-weight: 500;
+    }
+    .countdown span { font-size: 1.2rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="error-wrap">
+    <div class="error-code">404</div>
+    <h1 class="error-title">Page Not Found</h1>
+    <p class="error-text">The page you are looking for may have been moved, deleted, or possibly never existed. You will be redirected to the home page shortly.</p>
+    <div class="error-actions">
+      <a href="index.html" class="btn btn-primary btn-arrow">Go to Home Now</a>
+      <a href="products.html" class="btn btn-outline">Browse Products</a>
+    </div>
+    <p class="countdown">Redirecting to Home in <span id="seconds">3</span> seconds...</p>
+    <div class="error-home">
+      Or visit our <a href="about.html">About</a>, <a href="blog.html">Blog</a>, or <a href="contact.html">Contact</a> page.
+    </div>
+  </div>
+  <script>
+    (function() {
+      var seconds = 3;
+      var el = document.getElementById('seconds');
+      var timer = setInterval(function() {
+        seconds--;
+        if (el) el.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(timer);
+          window.location.href = 'index.html';
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>
