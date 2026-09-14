@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize storage before any reads/writes
   if (typeof Store !== 'undefined') await Store.init();
   if (typeof Content !== 'undefined') await Content.init();
+  if (typeof Banners !== 'undefined') await Banners.init();
 
   renderStats();
   renderTable();
@@ -794,6 +795,10 @@ window.closeModal = closeModal;
       if (target === 'content') {
         loadContentEditor();
       }
+      // Load banner manager when switching to banners tab
+      if (target === 'banners') {
+        loadBannerManager();
+      }
     });
   });
 })();
@@ -961,4 +966,238 @@ async function resetContentPage() {
   showToast('Page content reset to defaults');
   await renderContentEditor(currentContentPage, document.getElementById('contentEditorArea'));
   await updateContentHint(currentContentPage, document.getElementById('contentPageHint'));
+}
+
+/* ============================================
+   Home Banner (Poster Carousel) Management
+   ============================================ */
+let bannerEditData = [];
+let bannerDirty = false;
+
+async function loadBannerManager() {
+  const area = $('#bannerManagerArea');
+  if (!area || typeof Banners === 'undefined') return;
+
+  // Reload saved banners only when there are no unsaved edits
+  if (!bannerDirty) {
+    bannerEditData = Banners.getAll();
+  }
+  renderBannerManager();
+
+  const saveBtn = $('#btnBannerSave');
+  if (saveBtn) saveBtn.onclick = saveBanners;
+  const resetBtn = $('#btnBannerReset');
+  if (resetBtn) resetBtn.onclick = confirmResetBanners;
+}
+
+function renderBannerManager() {
+  const area = $('#bannerManagerArea');
+  if (!area) return;
+
+  if (!bannerEditData.length) {
+    area.innerHTML = `
+      <div class="banner-admin-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 16l-5-5L5 22"/></svg>
+        <h3>No Home Banners</h3>
+        <p>The homepage slider is currently hidden. Add your first poster below.</p>
+      </div>
+      <button class="btn-admin btn-admin-primary" id="btnAddBannerSlide">+ Add Banner Slide</button>`;
+    bindBannerAreaEvents(area);
+    return;
+  }
+
+  const cardsHtml = bannerEditData.map((b, i) => {
+    const img = b.image
+      ? `<img src="${escapeAttr(b.image)}" alt="Banner ${i + 1}" onerror="this.style.display='none';">`
+      : '';
+    const placeholder = b.image ? '' : '<span class="banner-thumb-ph">No image</span>';
+    const canUp = i > 0;
+    const canDown = i < bannerEditData.length - 1;
+    return `
+      <div class="banner-admin-card" data-idx="${i}">
+        <div class="banner-admin-order">${i + 1}</div>
+        <div class="banner-admin-preview">
+          <div class="banner-thumb">${img}${placeholder}</div>
+        </div>
+        <div class="banner-admin-body">
+          <div class="banner-admin-row">
+            <label>Poster Image <span>1920 &times; 650 recommended &middot; landscape</span></label>
+            <div class="banner-admin-imgline">
+              <input type="text" class="banner-admin-input banner-img" data-field="image" data-idx="${i}" placeholder="https://... or upload a file" value="${escapeAttr(b.image || '')}">
+              <span class="rt-divider">or</span>
+              <label class="btn-upload">
+                <input type="file" accept="image/*" data-upload="${i}" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Upload
+              </label>
+            </div>
+          </div>
+          <div class="banner-admin-row">
+            <label>Link URL <span>optional &middot; where this poster leads</span></label>
+            <input type="text" class="banner-admin-input" data-field="link" data-idx="${i}" placeholder="products.html?cat=rf  or  https://example.com/page" value="${escapeAttr(b.link || '')}">
+          </div>
+          <div class="banner-admin-row">
+            <label>Alt Text <span>optional &middot; for accessibility</span></label>
+            <input type="text" class="banner-admin-input" data-field="alt" data-idx="${i}" placeholder="Describe this poster" value="${escapeAttr(b.alt || '')}">
+          </div>
+        </div>
+        <div class="banner-admin-actions">
+          <button type="button" class="banner-act-btn" data-act="up" data-idx="${i}" ${canUp ? '' : 'disabled'} title="Move up">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+          </button>
+          <button type="button" class="banner-act-btn" data-act="down" data-idx="${i}" ${canDown ? '' : 'disabled'} title="Move down">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button type="button" class="banner-act-btn danger" data-act="remove" data-idx="${i}" title="Delete banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+
+  area.innerHTML = `
+    <div class="banner-admin-count">${bannerEditData.length} poster${bannerEditData.length === 1 ? '' : 's'} &middot; homepage auto-scrolls every 5s</div>
+    <div class="banner-admin-list">${cardsHtml}</div>
+    <button class="btn-admin btn-admin-outline" id="btnAddBannerSlide">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Add Banner Slide
+    </button>`;
+
+  bindBannerAreaEvents(area);
+}
+
+function bindBannerAreaEvents(area) {
+  // Text inputs keep the working copy in sync
+  area.querySelectorAll('[data-field]').forEach(input => {
+    input.addEventListener('input', () => {
+      const banner = bannerEditData[+input.dataset.idx];
+      if (!banner) return;
+      banner[input.dataset.field] = input.value;
+      bannerDirty = true;
+      if (input.dataset.field === 'image') {
+        updateBannerThumb(+input.dataset.idx, input.value);
+      }
+    });
+  });
+
+  // Action buttons (up / down / remove)
+  area.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = +btn.dataset.idx;
+      const act = btn.dataset.act;
+      if (act === 'up') moveBanner(i, -1);
+      else if (act === 'down') moveBanner(i, 1);
+      else if (act === 'remove') confirmDeleteBanner(i);
+    });
+  });
+
+  // File upload with auto-compression
+  area.querySelectorAll('input[type="file"][data-upload]').forEach(fileInput => {
+    fileInput.addEventListener('change', async function() {
+      const i = +this.dataset.upload;
+      const file = this.files[0];
+      this.value = '';
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        showToast('Image too large (max 10MB)', 'error');
+        return;
+      }
+      try {
+        showToast('Compressing image...', 'success');
+        const result = await compressImage(file, 1920, 0.72, 320);
+        const banner = bannerEditData[i];
+        if (!banner) return;
+        banner.image = result.dataUrl;
+        bannerDirty = true;
+        renderBannerManager();
+        showToast('Image ready (' + result.sizeKB + 'KB) — click Save Banners', 'success');
+      } catch (err) {
+        showToast('Failed to process image: ' + err.message, 'error');
+      }
+    });
+  });
+
+  // Add slide
+  const addBtn = area.querySelector('#btnAddBannerSlide');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      bannerEditData.push({ id: '', image: '', link: '', alt: '' });
+      bannerDirty = true;
+      renderBannerManager();
+    });
+  }
+}
+
+function updateBannerThumb(idx, url) {
+  const card = document.querySelector('.banner-admin-card[data-idx="' + idx + '"]');
+  if (!card) return;
+  const thumb = card.querySelector('.banner-thumb');
+  if (!thumb) return;
+  if (url && url.trim()) {
+    thumb.innerHTML = '<img src="' + escapeAttr(url.trim()) + '" alt="Banner preview" onerror="this.style.display=\'none\';">';
+  } else {
+    thumb.innerHTML = '<span class="banner-thumb-ph">No image</span>';
+  }
+}
+
+function moveBanner(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= bannerEditData.length) return;
+  const tmp = bannerEditData[i];
+  bannerEditData[i] = bannerEditData[j];
+  bannerEditData[j] = tmp;
+  bannerDirty = true;
+  renderBannerManager();
+}
+
+function confirmDeleteBanner(i) {
+  const banner = bannerEditData[i];
+  if (!banner) return;
+  $('#confirmTitle').textContent = 'Delete Banner?';
+  $('#confirmMessage').innerHTML = 'Remove this poster from the homepage carousel? You can add it again later.';
+  $('#btnConfirmAction').textContent = 'Delete';
+  confirmCallback = () => {
+    bannerEditData.splice(i, 1);
+    bannerDirty = true;
+    closeModal('confirmModal');
+    renderBannerManager();
+    showToast('Banner removed — remember to save', 'success');
+  };
+  openModal('confirmModal');
+}
+
+async function saveBanners() {
+  if (typeof Banners === 'undefined') return;
+  if (!bannerEditData.length) {
+    showToast('No banners to save. Add at least one poster or press Cancel.', 'error');
+    return;
+  }
+  const ok = await Banners.saveAll(bannerEditData);
+  if (!ok) {
+    showToast('Failed to save banners. Storage may be full.', 'error');
+    return;
+  }
+  bannerDirty = false;
+  showToast('Home banners saved (' + bannerEditData.length + ' slide' + (bannerEditData.length === 1 ? '' : 's') + ')', 'success');
+  await updateStorageIndicator();
+}
+
+function confirmResetBanners() {
+  $('#confirmTitle').textContent = 'Reset Home Banners?';
+  $('#confirmMessage').innerHTML = 'Restore the default five posters? Your current banner list will be replaced.';
+  $('#btnConfirmAction').textContent = 'Reset';
+  confirmCallback = async () => {
+    const result = await Banners.resetToDefault();
+    if (!result) {
+      showToast('Reset failed. Please try again.', 'error');
+      return;
+    }
+    bannerEditData = result;
+    bannerDirty = false;
+    closeModal('confirmModal');
+    renderBannerManager();
+    showToast('Home banners reset to defaults', 'success');
+    await updateStorageIndicator();
+  };
+  openModal('confirmModal');
 }

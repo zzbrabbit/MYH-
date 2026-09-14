@@ -7,10 +7,85 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize storage before any reads/writes
   if (typeof Store !== 'undefined') await Store.init();
   if (typeof Content !== 'undefined') await Content.init();
+  if (typeof Banners !== 'undefined') await Banners.init();
 
   /* ---------- Apply CMS Content Overrides ---------- */
   if (typeof Content !== 'undefined') {
     await Content.apply();
+  }
+
+  /* ---------- Home Banner Carousel (1920x650) ---------- */
+  const bannerSection = document.querySelector('#homeBannerSlider');
+  if (bannerSection) {
+    let banners = (typeof Banners !== 'undefined') ? Banners.getAll() : [];
+    if (!banners.length) {
+      bannerSection.style.display = 'none';
+    } else {
+      const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const grads = (typeof GRADIENT_LIBRARY !== 'undefined') ? GRADIENT_LIBRARY : [];
+      const fallbackGrad = (i) => grads.length ? grads[i % grads.length].value : 'linear-gradient(135deg,#8a1cc4,#660099)';
+
+      const slidesHtml = banners.map((b, i) => {
+        const grad = fallbackGrad(i);
+        const img = b.image
+          ? `<img src="${esc(b.image)}" alt="${esc(b.alt || 'MYHBeauty promotion')}" ${i === 0 ? '' : 'loading="lazy"'} onerror="this.style.display='none';">`
+          : '';
+        const media = `<div class="banner-slide-media" style="background:${grad}">${img}<div class="banner-fallback"><span class="banner-fallback-logo">MYH<span>Beauty</span></span></div></div>`;
+        const openTag = b.link
+          ? `<a class="banner-link" href="${esc(b.link)}"${/^https?:\/\//i.test(b.link) ? ' target="_blank" rel="noopener"' : ''}>`
+          : '<div class="banner-link">';
+        const closeTag = b.link ? '</a>' : '</div>';
+        return `<div class="banner-slide${i === 0 ? ' active' : ''}" data-index="${i}">${openTag}${media}${closeTag}</div>`;
+      }).join('');
+
+      const controls = banners.length > 1 ? `
+        <button class="banner-arrow banner-prev" aria-label="Previous banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <button class="banner-arrow banner-next" aria-label="Next banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></button>
+        <div class="banner-dots">${banners.map((_, i) => `<button class="banner-dot${i === 0 ? ' active' : ''}" data-index="${i}" aria-label="Go to banner ${i + 1}"></button>`).join('')}</div>` : '';
+
+      bannerSection.innerHTML = `<div class="banner-track-wrap"><div class="banner-track">${slidesHtml}</div></div>${controls}`;
+
+      const track = bannerSection.querySelector('.banner-track');
+      const slides = bannerSection.querySelectorAll('.banner-slide');
+      const dots = bannerSection.querySelectorAll('.banner-dot');
+      const prevBtn = bannerSection.querySelector('.banner-prev');
+      const nextBtn = bannerSection.querySelector('.banner-next');
+      const total = banners.length;
+      let index = 0;
+      let timer = null;
+
+      function goTo(n) {
+        index = (n + total) % total;
+        if (track) track.style.transform = 'translateX(-' + index * 100 + '%)';
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        if (dots) dots.forEach((d, i) => d.classList.toggle('active', i === index));
+      }
+      function stop() {
+        if (timer) { clearInterval(timer); timer = null; }
+      }
+      function play() {
+        stop();
+        timer = setInterval(() => goTo(index + 1), 5000);
+      }
+
+      if (total > 1) {
+        if (nextBtn) nextBtn.addEventListener('click', () => { goTo(index + 1); play(); });
+        if (prevBtn) prevBtn.addEventListener('click', () => { goTo(index - 1); play(); });
+        if (dots) dots.forEach(d => d.addEventListener('click', () => { goTo(parseInt(d.dataset.index, 10)); play(); }));
+        bannerSection.addEventListener('mouseenter', stop);
+        bannerSection.addEventListener('mouseleave', play);
+        let startX = null;
+        bannerSection.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; stop(); }, { passive: true });
+        bannerSection.addEventListener('touchend', (e) => {
+          if (startX === null) return;
+          const dx = e.changedTouches[0].clientX - startX;
+          if (Math.abs(dx) > 40) goTo(index + (dx < 0 ? 1 : -1));
+          startX = null;
+          play();
+        }, { passive: true });
+        play();
+      }
+    }
   }
 
   /* ---------- Page Loader ---------- */

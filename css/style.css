@@ -2401,3 +2401,151 @@ details p { animation: fadeInUp .4s ease; }
   .process-steps { grid-template-columns: 1fr; }
   .product-footer { flex-direction: column; align-items: flex-start; }
 }
+
+/* ============================================
+   Home Banner Carousel (1920x650 poster slider)
+   Placed under the nav, above the hero on index
+   ============================================ */
+.has-banner .nav {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1rem 0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+}
+.has-banner .nav.scrolled {
+  padding: 0.8rem 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.banner-slider {
+  position: relative;
+  width: 100%;
+  height: clamp(240px, 34vw, 650px);
+  min-height: 200px;
+  overflow: hidden;
+  background: #f2eef5;
+}
+.banner-track-wrap {
+  position: absolute;
+  inset: 0;
+}
+.banner-track {
+  display: flex;
+  height: 100%;
+  transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.banner-slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.banner-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.banner-slide-media {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.banner-slide-media img {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.banner-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banner-fallback-logo {
+  font-family: var(--font-heading);
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+}
+.banner-fallback-logo span { color: #e6ccff; }
+
+/* Arrows */
+.banner-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--c-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  transition: background 0.25s, transform 0.25s;
+}
+.banner-arrow svg { width: 20px; height: 20px; }
+.banner-arrow:hover {
+  background: var(--c-accent);
+  color: #ffffff;
+}
+.banner-prev { left: 1.25rem; }
+.banner-next { right: 1.25rem; }
+.banner-prev:hover { transform: translateY(-50%) translateX(-3px); }
+.banner-next:hover { transform: translateY(-50%) translateX(3px); }
+
+/* Dots */
+.banner-dots {
+  position: absolute;
+  bottom: 1rem;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  gap: 0.55rem;
+}
+.banner-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.25s, transform 0.25s;
+}
+.banner-dot.active {
+  background: var(--c-accent);
+  transform: scale(1.25);
+}
+
+@media (max-width: 768px) {
+  .banner-slider { height: clamp(220px, 62vw, 420px); }
+  .banner-arrow { width: 38px; height: 38px; }
+  .banner-arrow svg { width: 17px; height: 17px; }
+  .banner-prev { left: 0.75rem; }
+  .banner-next { right: 0.75rem; }
+  .banner-dots { bottom: 0.7rem; }
+}

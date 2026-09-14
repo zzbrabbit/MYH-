@@ -1312,7 +1312,7 @@ const DBStorage = {
   /* Estimate total bytes used for MYHBeauty keys */
   async estimateSize() {
     let total = 0;
-    const keys = [STORAGE_KEY, CONTENT_KEY];
+    const keys = [STORAGE_KEY, CONTENT_KEY, BANNER_KEY];
     for (const key of keys) {
       try {
         const val = await this.getItem(key);
@@ -1328,6 +1328,7 @@ async function clearLegacyStorage() {
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(CONTENT_KEY);
+    localStorage.removeItem(BANNER_KEY);
   } catch (e) { /* ignore */ }
 }
 
@@ -1694,5 +1695,79 @@ const Content = {
   /* Get the full schema */
   getSchema() {
     return PAGE_CONTENT_SCHEMA;
+  }
+};
+
+/* ============================================
+   Home Banner (Poster Carousel) Module
+   Manageable posters shown on the homepage top
+   ============================================ */
+const BANNER_KEY = 'myhbeauty_banners';
+
+const DEFAULT_BANNERS = [
+  { id: 'bn01', image: 'https://picsum.photos/seed/myhbanner1/1920/650', link: 'products.html', alt: 'MYHBeauty Professional Beauty Instruments — Banner 1' },
+  { id: 'bn02', image: 'https://picsum.photos/seed/myhbanner2/1920/650', link: 'products.html?cat=cavitation', alt: 'MYHBeauty Cavitation Machines — Banner 2' },
+  { id: 'bn03', image: 'https://picsum.photos/seed/myhbanner3/1920/650', link: 'products.html?cat=rf', alt: 'MYHBeauty RF Technology — Banner 3' },
+  { id: 'bn04', image: 'https://picsum.photos/seed/myhbanner4/1920/650', link: 'products.html?cat=hair', alt: 'MYHBeauty Hair Removal — Banner 4' },
+  { id: 'bn05', image: 'https://picsum.photos/seed/myhbanner5/1920/650', link: 'contact.html', alt: 'MYHBeauty OEM & Wholesale — Banner 5' }
+];
+
+const Banners = {
+  _cache: null,
+  _ready: null,
+
+  /* Initialize banner list from IndexedDB (migrates legacy localStorage if present) */
+  async init() {
+    if (this._ready) return this._ready;
+    this._ready = (async () => {
+      await DBStorage.init();
+      let list = await DBStorage.getItem(BANNER_KEY);
+      if (!Array.isArray(list)) {
+        try {
+          const legacy = localStorage.getItem(BANNER_KEY);
+          if (legacy) {
+            const parsed = JSON.parse(legacy);
+            if (Array.isArray(parsed)) list = parsed;
+          }
+        } catch (e) { /* ignore */ }
+      }
+      if (!Array.isArray(list)) {
+        list = [...DEFAULT_BANNERS];
+      }
+      // Normalize shape (an intentionally empty array stays empty -> slider hidden)
+      this._cache = list.map((b, i) => ({
+        id: b.id || 'bn' + String(i + 1).padStart(2, '0'),
+        image: b.image || '',
+        link: b.link || '',
+        alt: b.alt || ''
+      }));
+      return true;
+    })();
+    return this._ready;
+  },
+
+  /* Get all banners (shallow-cloned copy) */
+  getAll() {
+    if (!this._cache) return DEFAULT_BANNERS.map(b => ({ ...b }));
+    return this._cache.map(b => ({ ...b }));
+  },
+
+  /* Save the whole banner list — returns true on success */
+  async saveAll(list) {
+    const clean = (Array.isArray(list) ? list : []).map((b, i) => ({
+      id: b.id || 'bn' + String(i + 1).padStart(2, '0'),
+      image: (b.image || '').trim(),
+      link: (b.link || '').trim(),
+      alt: (b.alt || '').trim()
+    }));
+    const ok = await DBStorage.setItem(BANNER_KEY, clean);
+    if (ok) this._cache = clean;
+    return ok;
+  },
+
+  /* Reset to the default five posters */
+  async resetToDefault() {
+    const ok = await this.saveAll(DEFAULT_BANNERS.map(b => ({ ...b })));
+    return ok ? this.getAll() : null;
   }
 };
