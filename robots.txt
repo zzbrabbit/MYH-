@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin.html
-Disallow: /login.html
-Disallow: /deploy-guide.html
-
-Sitemap: https://www.myhbeauty.com/sitemap.xml
