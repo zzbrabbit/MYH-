@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog & Insights — MYHBeauty</title>
+  <meta name="description" content="Expert beauty tips, treatment guides, industry insights, and technology deep-dives from MYHBeauty's team of aestheticians and engineers.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Blog & Insights — MYHBeauty">
+  <meta property="og:description" content="Expert beauty tips, treatment guides, industry insights, and technology deep-dives from MYHBeauty.">
+  <meta property="og:url" content="https://www.myhbeauty.com/blog.html">
+  <meta property="og:site_name" content="MYHBeauty">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Loader -->
+  <div class="loader">
+    <div class="loader-text">MYHBeauty</div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="nav-logo">
+        MYH<span>Beauty</span>
+        <span class="sub">Beauty Instruments</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="about.html">About</a></li>
+        <li><a href="products.html">Products</a></li>
+        <li><a href="treatments.html">Treatments</a></li>
+        <li><a href="blog.html" class="active">Blog</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <button class="nav-toggle" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="container">
+      <span class="eyebrow reveal">Beauty Knowledge Hub</span>
+      <h1 class="reveal reveal-delay-1">Expert Insights &amp;<br>Beauty Intelligence</h1>
+      <p class="lead reveal reveal-delay-2">
+        Dive deep into the science of beauty technology with our team of
+        aestheticians, engineers, and industry experts. Treatment guides,
+        buying advice, and the latest trends.
+      </p>
+      <div class="breadcrumb reveal reveal-delay-3">
+        <a href="index.html">Home</a> <span>/</span> <span>Blog</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Blog Layout -->
+  <section class="section section-sm">
+    <div class="container">
+      <div class="blog-layout">
+
+        <!-- Main Content -->
+        <div class="blog-main">
+          <!-- Featured Article -->
+          <div class="blog-featured reveal" id="blogFeatured"><!-- Featured article rendered dynamically --></div>
+
+          <!-- Category Filter -->
+          <div class="blog-filters reveal">
+            <button class="blog-filter-btn active" data-category="all">All Articles</button>
+          </div>
+
+          <!-- Article Grid -->
+          <div class="blog-grid" id="blogGrid"><!-- Articles rendered dynamically --></div>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="blog-sidebar reveal">
+          <div class="sidebar-block">
+            <h4 class="sidebar-title">Categories</h4>
+            <ul class="sidebar-cats" id="blogSidebarCats"><!-- Categories rendered dynamically --></ul>
+          </div>
+
+          <div class="sidebar-block">
+            <h4 class="sidebar-title">Popular Posts</h4>
+            <ul class="blog-popular" id="blogPopular"><!-- Popular posts rendered dynamically --></ul>
+          </div>
+
+          <div class="sidebar-block">
+            <h4 class="sidebar-title">Tags</h4>
+            <div class="blog-tags" id="blogTags"><!-- Tags rendered dynamically --></div>
+          </div>
+
+          <div class="sidebar-help">
+            <div class="sidebar-help-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v12H5.17L4 17.17V4z"/><path d="M8 10h8M8 7h8M8 13h5"/></svg>
+            </div>
+            <h4>Have Questions?</h4>
+            <p>Our beauty specialists are ready to answer your treatment and product questions.</p>
+            <a href="contact.html" class="btn btn-outline btn-sm">Ask an Expert</a>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter CTA -->
+  <section class="cta-banner bg-warm">
+    <div class="container container-narrow">
+      <div class="reveal">
+        <span class="eyebrow">Stay Updated</span>
+        <h2>Never Miss a Beauty<br>Insight</h2>
+        <p class="lead">
+          Subscribe to our newsletter for the latest treatment guides, product
+          launches, and exclusive beauty tips delivered to your inbox.
+        </p>
+        <form class="newsletter-form newsletter-form-center" onsubmit="return false;">
+          <input type="email" placeholder="Enter your email address" required>
+          <button type="submit">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="nav-logo">MYH<span style="color:var(--c-accent)">Beauty</span></a>
+          <p>Premium beauty instruments crafted with precision, powered by innovation, and designed for elegance.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg></a>
+            <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+            <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg></a>
+            <a href="#" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19c1.72.46 8.6.42 8.6.42s6.88 0 8.6-.42a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.33z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z" fill="currentColor"/></svg></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="treatments.html">Treatments</a></li>
+            <li><a href="blog.html">Blog</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Products</h4>
+          <ul>
+            <li><a href="products.html?cat=cavitation">Cavitation Machines</a></li>
+            <li><a href="products.html?cat=derma">Dermabrasion</a></li>
+            <li><a href="products.html?cat=hair">Hair Removal</a></li>
+            <li><a href="products.html?cat=ems">EMS Machines</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Newsletter</h4>
+          <p style="font-size: var(--fs-sm); margin-bottom: 0;">Subscribe for product updates and beauty tips.</p>
+          <form class="newsletter-form">
+            <input type="email" placeholder="Your email" required>
+            <button type="submit">Join</button>
+          </form>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024-2026 MYHBeauty. All rights reserved. | Beauty Instruments Manufacturer | <a href="login.html" style="color:var(--c-accent); margin-left:.5rem;">Admin Dashboard</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll to Top -->
+  <button class="scroll-top" aria-label="Scroll to top">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+  </button>
+
+  <script src="js/store.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
