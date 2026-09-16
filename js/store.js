@@ -2373,10 +2373,22 @@ const Social = {
     }));
   },
 
-  /* Inline SVG markup for one platform ('' when unknown) */
+  /* Inline SVG markup for one platform ('' when unknown).
+     Bake a fallback intrinsic size into the markup so the icon can never
+     balloon to container width when the stylesheet is missing or served
+     stale (e.g. a cached admin.css). Explicit CSS (.social-admin-icon 18px /
+     .social-preview-icon 17px / .footer-social 18px) still overrides these
+     attributes, so every existing context keeps its intended size. */
   getIcon(platform) {
     const p = SOCIAL_PLATFORMS[platform];
-    return p ? p.svg : '';
+    if (!p) return '';
+    // Only look at the <svg> opening tag — inner shapes (rect/circle) may
+    // carry their own width= and must not trip the guard.
+    const openTagEnd = p.svg.indexOf('>');
+    const openTag = openTagEnd > 0 ? p.svg.slice(0, openTagEnd) : p.svg;
+    // Match a real width attribute (preceded by whitespace), not stroke-width=.
+    if (/\swidth=/.test(openTag)) return p.svg;
+    return p.svg.replace('<svg ', '<svg width="18" height="18" ');
   },
 
   getItem(id) {
