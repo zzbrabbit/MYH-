@@ -562,7 +562,11 @@ function openExportModal() {
    Drop the downloaded data.js into the website root and redeploy; new
    visitors will then see exactly this content. */
 async function buildPublishBundle() {
-  await Promise.all([Store.init(), Content.init(), Banners.init(), CatNav.init(), Posts.init()]);
+  await Promise.all([Store.init(), Content.init(), Banners.init(), CatNav.init(), Posts.init(), Social.init()]);
+  let fwdEmail = '';
+  try {
+    if (typeof Messages !== 'undefined') { await Messages.init(); fwdEmail = await Messages.getForwardEmail(); }
+  } catch (e) { /* ignore */ }
   const bundle = {
     version: 1,
     publishedAt: new Date().toISOString(),
@@ -570,7 +574,9 @@ async function buildPublishBundle() {
     posts: JSON.parse(JSON.stringify(Posts.getAll())),
     content: JSON.parse(JSON.stringify(await Content.getAll())),
     banners: JSON.parse(JSON.stringify(Banners.getAll())),
-    catnav: JSON.parse(JSON.stringify(CatNav.getAll()))
+    catnav: JSON.parse(JSON.stringify(CatNav.getAll())),
+    social: JSON.parse(JSON.stringify(Social.getAll())),
+    msgForwardEmail: fwdEmail || undefined
   };
   return bundle;
 }
@@ -702,6 +708,18 @@ function initEventListeners() {
   $('#btnReset').addEventListener('click', confirmReset);
   const publishBtn = $('#btnPublishData');
   if (publishBtn) publishBtn.addEventListener('click', exportPublishBundle);
+
+  // Sync to GitHub
+  const githubBtn = $('#btnGithubSync');
+  if (githubBtn) githubBtn.addEventListener('click', openGithubModal);
+  const ghPushBtn = $('#btnGithubPush');
+  if (ghPushBtn) ghPushBtn.addEventListener('click', pushToGithub);
+  const ghTestBtn = $('#btnGithubTest');
+  if (ghTestBtn) ghTestBtn.addEventListener('click', testGithubConnection);
+  const ghSiteBtn = $('#btnGithubPushSite');
+  if (ghSiteBtn) ghSiteBtn.addEventListener('click', pushWholeSiteToGithub);
+  const ghFilesBtn = $('#btnGithubPushFiles');
+  if (ghFilesBtn) ghFilesBtn.addEventListener('click', pushAsFilesToGithub);
 
   // Confirm action (delete / reset)
   $('#btnConfirmAction').addEventListener('click', () => {
@@ -849,6 +867,14 @@ window.closeModal = closeModal;
       // Load blog article manager when switching to blog tab
       if (target === 'blog') {
         loadBlogManager();
+      }
+      // Load social link manager when switching to social tab
+      if (target === 'social') {
+        loadSocialManager();
+      }
+      // Load messages manager when switching to messages tab
+      if (target === 'messages') {
+        loadMessagesManager();
       }
     });
   });
@@ -1766,3 +1792,778 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ============================================
+   Social Media Links Manager
+   Add / edit / delete the social icons shown in
+   the site footer and on the Contact page.
+   ============================================ */
+let socialEditList = [];
+
+async function loadSocialManager() {
+  const area = $('#socialAdminArea');
+  if (!area || typeof Social === 'undefined') return;
+  /* Paint right away (defaults / cached list), then refresh with the
+     persisted list once IndexedDB has finished loading. */
+  socialEditList = Social.getAll();
+  populateSocialPlatforms();
+  renderSocialAdmin();
+  try { await Social.init(); } catch (e) { /* ignore */ }
+  socialEditList = Social.getAll();
+  renderSocialAdmin();
+}
+
+/* Fill the platform <select> in the add/edit modal */
+function populateSocialPlatforms() {
+  const sel = $('#socialPlatform');
+  if (!sel || typeof Social === 'undefined') return;
+  sel.innerHTML = Social.getPlatforms()
+    .map(p => '<option value="' + escapeAttr(p.id) + '">' + escapeAttr(p.label) + '</option>')
+    .join('');
+}
+
+function renderSocialAdmin() {
+  const area = $('#socialAdminArea');
+  if (!area) return;
+  if (!socialEditList.length) {
+    area.innerHTML = '<div class="admin-empty">No social links yet. Click "Add Social Link" to create one.</div>';
+    return;
+  }
+  area.innerHTML = socialEditList.map(s => {
+    const label = (typeof SOCIAL_PLATFORMS !== 'undefined' && SOCIAL_PLATFORMS[s.platform])
+      ? SOCIAL_PLATFORMS[s.platform].label : s.platform;
+    const icon = Social.getIcon(s.platform);
+    const isEmpty = !s.url;
+    return `<div class="social-admin-row${isEmpty ? ' is-empty' : ''}">
+      <div class="social-admin-icon">${icon}</div>
+      <div class="social-admin-main">
+        <span class="social-admin-name">${escapeAttr(label)}</span>
+        <input type="text" class="social-admin-url" data-id="${escapeAttr(s.id)}" value="${escapeAttr(s.url)}" placeholder="https://..." spellcheck="false">
+      </div>
+      <div class="social-admin-actions">
+        <button class="action-btn save" onclick="saveSocialRow('${escapeAttr(s.id)}')" title="Save">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+        <button class="action-btn" onclick="openEditSocialModal('${escapeAttr(s.id)}')" title="Edit platform">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M11 4H4v16h16v-7M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="action-btn delete" onclick="confirmDeleteSocial('${escapeAttr(s.id)}')" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Enter inside a URL field saves that row
+  area.querySelectorAll('.social-admin-url').forEach(inp => {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveSocialRow(inp.dataset.id); }
+    });
+  });
+}
+
+/* Save a single row's URL (from the inline input) */
+async function saveSocialRow(id) {
+  const inp = document.querySelector('.social-admin-url[data-id="' + id + '"]');
+  if (!inp) return;
+  const row = socialEditList.find(s => s.id === id);
+  if (!row) return;
+  const updated = await Social.updateItem(id, { url: inp.value.trim() });
+  if (updated) {
+    showToast('Link saved', 'success');
+    loadSocialManager();
+  } else {
+    showToast('Save failed! Please try again.', 'error');
+  }
+}
+
+function openAddSocialModal() {
+  $('#socialModalTitle').textContent = 'Add Social Link';
+  $('#socialId').value = '';
+  $('#socialPlatform').disabled = false;
+  $('#socialPlatform').value = 'instagram';
+  $('#socialUrl').value = '';
+  updateSocialPreview();
+  openModal('socialModal');
+}
+
+function openEditSocialModal(id) {
+  const item = socialEditList.find(s => s.id === id);
+  if (!item) return;
+  $('#socialModalTitle').textContent = 'Edit Social Link';
+  $('#socialId').value = item.id;
+  $('#socialPlatform').value = item.platform;
+  $('#socialUrl').value = item.url || '';
+  updateSocialPreview();
+  openModal('socialModal');
+}
+
+/* Live icon preview inside the modal */
+function updateSocialPreview() {
+  const box = $('#socialPreview');
+  if (!box || typeof Social === 'undefined') return;
+  const platform = $('#socialPlatform').value || 'instagram';
+  const label = (typeof SOCIAL_PLATFORMS !== 'undefined' && SOCIAL_PLATFORMS[platform])
+    ? SOCIAL_PLATFORMS[platform].label : platform;
+  box.innerHTML = '<span class="social-preview-icon">' + Social.getIcon(platform) + '</span>'
+    + '<span class="social-preview-label">' + escapeAttr(label) + '</span>';
+}
+
+async function saveSocial(id, platform, url) {
+  const platformVal = platform || $('#socialPlatform').value;
+  const urlVal = (typeof url === 'string' ? url : $('#socialUrl').value).trim();
+  const editId = id !== undefined ? id : $('#socialId').value;
+  let result = null;
+  if (editId) {
+    result = await Social.updateItem(editId, { platform: platformVal, url: urlVal });
+  } else {
+    result = await Social.addItem({ platform: platformVal, url: urlVal });
+  }
+  if (result) {
+    showToast(editId ? 'Link updated' : 'Link added', 'success');
+    closeModal('socialModal');
+    loadSocialManager();
+  } else {
+    showToast('Save failed! Please try again.', 'error');
+  }
+}
+
+/* Save handler bound to the modal's footer button */
+function saveSocialFromModal() {
+  saveSocial();
+}
+
+function confirmDeleteSocial(id) {
+  const item = socialEditList.find(s => s.id === id);
+  const label = item && typeof SOCIAL_PLATFORMS !== 'undefined' && SOCIAL_PLATFORMS[item.platform]
+    ? SOCIAL_PLATFORMS[item.platform].label : 'this link';
+  $('#confirmTitle').textContent = 'Delete Social Link';
+  $('#confirmMessage').innerHTML = 'Remove the <strong>' + escapeAttr(label) + '</strong> icon from the website footer and Contact page?';
+  confirmCallback = async () => {
+    const res = await Social.deleteItem(id);
+    closeModal('confirmModal');
+    if (res) {
+      showToast('Link deleted', 'success');
+      loadSocialManager();
+    } else {
+      showToast('Delete failed! Please try again.', 'error');
+    }
+  };
+  openModal('confirmModal');
+}
+
+function confirmResetSocial() {
+  $('#confirmTitle').textContent = 'Restore Default Icons';
+  $('#confirmMessage').innerHTML = 'Restore the built-in four icons (Instagram / Facebook / LinkedIn / YouTube) and clear all saved URLs?';
+  confirmCallback = async () => {
+    const res = await Social.resetToDefault();
+    closeModal('confirmModal');
+    if (res) {
+      showToast('Default icons restored', 'success');
+      loadSocialManager();
+    } else {
+      showToast('Restore failed! Please try again.', 'error');
+    }
+  };
+  openModal('confirmModal');
+}
+
+/* Bind the social-link manager controls once (after DOM ready) */
+document.addEventListener('DOMContentLoaded', () => {
+  if (!$('#socialModal')) return;
+  const addSocialBtn = $('#btnAddSocial');
+  if (addSocialBtn) addSocialBtn.addEventListener('click', openAddSocialModal);
+
+  const saveSocialBtn = $('#btnSaveSocial');
+  if (saveSocialBtn) saveSocialBtn.addEventListener('click', () => saveSocial());
+
+  const resetSocialBtn = $('#btnSocialReset');
+  if (resetSocialBtn) resetSocialBtn.addEventListener('click', confirmResetSocial);
+});
+
+/* ============================================
+   Customer Messages Manager
+   Read / reply to / delete the messages that
+   customers submit from the Contact page.
+
+   New messages from the live website are also FORWARDED to the
+   owner's email inbox (FormSubmit, configured below).
+   ============================================ */
+let msgFilter = 'all';
+let msgSearch = '';
+let currentMsgId = null;
+
+/* ---------- Status text under the Forward To Email bar ---------- */
+function setMsgSyncStatus(text, isWarning) {
+  const el = $('#msgSyncStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('warn', !!isWarning);
+}
+
+/* ---------- Local message helpers ---------- */
+
+/* All local messages, newest first */
+function getMergedMessages() {
+  return (typeof Messages !== 'undefined') ? Messages.getAll() : [];
+}
+
+function countUnreadMerged() {
+  return (typeof Messages !== 'undefined') ? Messages.countUnread() : 0;
+}
+
+/* Find a message by id */
+function findMessageAny(id) {
+  return (typeof Messages !== 'undefined') ? Messages.getItem(id) : null;
+}
+
+async function loadMessagesManager() {
+  const area = $('#msgAdminArea');
+  if (!area || typeof Messages === 'undefined') return;
+  try { await Messages.init(); } catch (e) { /* ignore */ }
+
+  // Bind the Forward To Email input once
+  const fwdInput = $('#msgFwdInput');
+  if (fwdInput && !fwdInput.dataset.bound) {
+    fwdInput.dataset.bound = '1';
+    try { fwdInput.value = await Messages.getForwardEmail(); } catch (e) { /* ignore */ }
+    const btn = $('#btnMsgFwdSave');
+    if (btn) btn.addEventListener('click', saveMsgForwardEmail);
+    const tbtn = $('#btnMsgFwdTest');
+    if (tbtn) tbtn.addEventListener('click', testMsgForwarding);
+    fwdInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); saveMsgForwardEmail(); } });
+  }
+  const fwd = fwdInput && fwdInput.value.trim();
+  setMsgSyncStatus(fwd ? 'Forwarding to ' + fwd : 'Not set — messages stay in this browser only', !fwd);
+
+  updateMsgTabBadge();
+  renderMessagesAdmin();
+}
+
+/* Save the forwarding email typed by the admin */
+async function saveMsgForwardEmail() {
+  const fwdInput = $('#msgFwdInput');
+  const email = fwdInput ? fwdInput.value.trim() : '';
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Please enter a valid email address', 'error');
+    return;
+  }
+  const ok = typeof Messages !== 'undefined' ? await Messages.setForwardEmail(email) : false;
+  if (ok) {
+    showToast(email
+      ? 'Saved — new live-site messages will be forwarded to ' + email
+      : 'Forwarding cleared', 'success');
+    setMsgSyncStatus(email ? 'Forwarding to ' + email : 'Not set — messages stay in this browser only', !email);
+  } else {
+    showToast('Save failed! Please try again.', 'error');
+  }
+}
+
+/* Send a test message through FormSubmit and report the exact result.
+   Handles: not activated yet, file:// preview, network failure. */
+async function testMsgForwarding() {
+  const fwdInput = $('#msgFwdInput');
+  const email = fwdInput ? fwdInput.value.trim() : '';
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('Enter and Save a valid forwarding email first', 'error');
+    return;
+  }
+  if (location.protocol === 'file:') {
+    showToast('A file:// preview cannot send email. Open the site through http(s) — e.g. the local server link — and test again.', 'error');
+    setMsgSyncStatus('Not sent — file:// preview is not supported', true);
+    return;
+  }
+  setMsgSyncStatus('Sending test…', false);
+  try {
+    const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        name: 'MYHBeauty Test',
+        email: email,
+        message: 'This is a test message sent from your website admin panel. If you received it, message forwarding works.',
+        _subject: 'MYHBeauty — forwarding test',
+        _template: 'table',
+        _captcha: 'false'
+      })
+    });
+    const data = await res.json().catch(() => null);
+    const msg = (data && data.message) ? String(data.message) : '';
+    if (data && String(data.success) === 'true') {
+      showToast('Test sent — check the inbox (and spam) of ' + email, 'success');
+      setMsgSyncStatus('Forwarding to ' + email, false);
+    } else if (/activat/i.test(msg)) {
+      showToast('Activation email sent to ' + email + ' — open it, click "Activate", then press Send Test again.', 'error');
+      setMsgSyncStatus('Waiting for activation — check ' + email, true);
+    } else {
+      showToast('Test failed: ' + (msg || ('HTTP ' + res.status)), 'error');
+      setMsgSyncStatus('Test failed — ' + (msg || ('HTTP ' + res.status)), true);
+    }
+  } catch (e) {
+    showToast('Cannot reach the email service — check your internet connection', 'error');
+    setMsgSyncStatus('Not reachable — check your connection', true);
+  }
+}
+
+/* Show the unread count on the "Messages" tab button */
+function updateMsgTabBadge() {
+  const badge = $('#msgTabBadge');
+  if (!badge || typeof Messages === 'undefined') return;
+  const n = countUnreadMerged();
+  badge.hidden = n === 0;
+  badge.textContent = n > 99 ? '99+' : String(n);
+}
+
+function renderMessagesAdmin() {
+  const area = $('#msgAdminArea');
+  if (!area || typeof Messages === 'undefined') return;
+
+  // Bind the search box and filter buttons once
+  const searchInput = $('#msgSearchInput');
+  if (searchInput && !searchInput.dataset.bound) {
+    searchInput.dataset.bound = '1';
+    searchInput.addEventListener('input', () => {
+      msgSearch = searchInput.value.trim().toLowerCase();
+      renderMessagesAdmin();
+    });
+  }
+  document.querySelectorAll('#msgFilters .msg-filter').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === msgFilter);
+    if (!b.dataset.bound) {
+      b.dataset.bound = '1';
+      b.addEventListener('click', () => {
+        msgFilter = b.dataset.filter;
+        renderMessagesAdmin();
+      });
+    }
+  });
+
+  let list = getMergedMessages();
+  if (msgFilter !== 'all') list = list.filter(m => m.status === msgFilter);
+  if (msgSearch) {
+    list = list.filter(m => (
+      m.firstName + ' ' + m.lastName + ' ' + m.email + ' ' + m.phone + ' ' +
+      m.company + ' ' + m.message + ' ' + msgSubjectLabel(m.subject)
+    ).toLowerCase().includes(msgSearch));
+  }
+
+  if (!list.length) {
+    const filtered = msgFilter !== 'all' || msgSearch;
+    area.innerHTML = '<div class="admin-empty">' + (filtered
+      ? 'No messages match the current filter.'
+      : 'No customer messages yet. Messages submitted from the Contact page will appear here.') + '</div>';
+    return;
+  }
+
+  area.innerHTML = list.map(m => {
+    const name = ((m.firstName + ' ' + m.lastName).trim()) || m.email || 'Unknown';
+    const initial = escapeAttr(name.charAt(0).toUpperCase());
+    const unread = m.status === 'new';
+    const chip = m.status === 'replied'
+      ? '<span class="msg-status-chip replied">Replied</span>'
+      : m.status === 'read'
+        ? '<span class="msg-status-chip read">Read</span>'
+        : '<span class="msg-status-chip new">New</span>';
+    const snippet = m.message.length > 110 ? m.message.slice(0, 110) + '…' : m.message;
+    return `<div class="msg-admin-row${unread ? ' is-unread' : ''}" onclick="openMsgModal('${escapeAttr(m.id)}')">
+      <div class="msg-avatar">${initial}</div>
+      <div class="msg-main">
+        <div class="msg-row-top">
+          <span class="msg-name">${escapeAttr(name)}</span>
+          <span class="msg-subject">${escapeAttr(msgSubjectLabel(m.subject))}</span>
+          ${chip}
+        </div>
+        <div class="msg-snippet">${escapeAttr(snippet)}</div>
+        <div class="msg-row-bottom">
+          <span class="msg-email">${escapeAttr(m.email)}</span>
+          <span class="msg-date">${escapeAttr(fmtMsgDate(m.submittedAt))}</span>
+        </div>
+      </div>
+      <div class="msg-row-actions" onclick="event.stopPropagation();">
+        <button class="action-btn" onclick="openMsgModal('${escapeAttr(m.id)}')" title="Open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button class="action-btn delete" onclick="confirmDeleteMsg('${escapeAttr(m.id)}')" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* Format an ISO timestamp as a readable local date */
+function fmtMsgDate(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso || '';
+    return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    return iso || '';
+  }
+}
+
+/* Open the detail modal for one message (marks it as read) */
+function openMsgModal(id) {
+  if (typeof Messages === 'undefined') return;
+  const m = findMessageAny(id);
+  if (!m) return;
+  currentMsgId = id;
+
+  if (m.status === 'new') {
+    markMessageRead(m);
+  }
+
+  const name = ((m.firstName + ' ' + m.lastName).trim()) || m.email || 'Unknown';
+  $('#msgModalTitle').textContent = 'Message from ' + name;
+
+  const rows = [
+    ['Name', escapeAttr(name)],
+    ['Email', '<a href="mailto:' + escapeAttr(m.email) + '">' + escapeAttr(m.email) + '</a>'],
+    m.phone ? ['Phone', escapeAttr(m.phone)] : null,
+    m.company ? ['Company', escapeAttr(m.company)] : null,
+    ['Subject', escapeAttr(msgSubjectLabel(m.subject))],
+    ['Received', escapeAttr(fmtMsgDate(m.submittedAt))]
+  ].filter(Boolean);
+  $('#msgDetail').innerHTML =
+    '<div class="msg-detail-grid">' +
+    rows.map(r => '<div class="msg-detail-row"><span class="msg-detail-label">' + r[0] + '</span><span class="msg-detail-value">' + r[1] + '</span></div>').join('') +
+    '</div>' +
+    '<div class="msg-detail-body">' + escapeHtml(m.message).replace(/\n/g, '<br>') + '</div>';
+
+  renderMsgReplies(m);
+  $('#msgReplyText').value = '';
+  openModal('msgModal');
+}
+
+/* Mark a message as read */
+function markMessageRead(m) {
+  Messages.setStatus(m.id, 'read').then(() => {
+    updateMsgTabBadge();
+    renderMessagesAdmin();
+  });
+}
+
+/* Render the saved replies inside the modal */
+function renderMsgReplies(m) {
+  const box = $('#msgReplies');
+  if (!box) return;
+  if (!m.replies || !m.replies.length) {
+    box.innerHTML = '<div class="msg-no-replies">No replies yet.</div>';
+    return;
+  }
+  box.innerHTML = m.replies.map(r =>
+    '<div class="msg-reply-item"><div class="msg-reply-meta">' + escapeAttr(fmtMsgDate(r.at)) + '</div><div class="msg-reply-text">' + escapeHtml(r.text).replace(/\n/g, '<br>') + '</div></div>'
+  ).join('');
+}
+
+/* Build a mailto: link and open the visitor's email client */
+function openMsgInEmail(replyText) {
+  if (typeof Messages === 'undefined' || !currentMsgId) return;
+  const m = findMessageAny(currentMsgId);
+  if (!m) return;
+  const subject = 'Re: ' + msgSubjectLabel(m.subject) + ' - MYHBeauty';
+  const body = (typeof replyText === 'string' && replyText.trim())
+    ? replyText
+    : ($('#msgReplyText') ? $('#msgReplyText').value.trim() : '');
+  const quoted = m.message.split('\n').map(l => '> ' + l).join('\n');
+  const full = (body ? body + '\n\n' : '') + '---------- Original message ----------\n'
+    + 'From: ' + ((m.firstName + ' ' + m.lastName).trim() || m.email) + '\n'
+    + 'Date: ' + fmtMsgDate(m.submittedAt) + '\n\n' + quoted;
+  window.location.href = 'mailto:' + m.email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(full);
+}
+
+/* Save the written reply, mark as replied, then open the email client */
+async function sendMsgReply() {
+  if (!currentMsgId) return;
+  const m = findMessageAny(currentMsgId);
+  if (!m) return;
+  const text = $('#msgReplyText') ? $('#msgReplyText').value.trim() : '';
+  if (!text) {
+    showToast('Please write a reply first', 'error');
+    return;
+  }
+  const res = await Messages.addReply(m.id, text);
+  const ok = !!res;
+  if (ok) {
+    showToast('Reply saved — opening your email client', 'success');
+    closeModal('msgModal');
+    openMsgInEmail(text);
+    updateMsgTabBadge();
+    renderMessagesAdmin();
+  } else {
+    showToast('Save failed! Please try again.', 'error');
+  }
+}
+
+/* Delete the message currently open in the modal */
+function confirmDeleteCurrentMsg() {
+  if (currentMsgId) confirmDeleteMsg(currentMsgId);
+}
+
+function confirmDeleteMsg(id) {
+  const m = findMessageAny(id);
+  const name = m ? ((m.firstName + ' ' + m.lastName).trim() || m.email) : 'this message';
+  $('#confirmTitle').textContent = 'Delete Message';
+  $('#confirmMessage').innerHTML = 'Permanently delete the message from <strong>' + escapeAttr(name) + '</strong>? This cannot be undone.';
+  confirmCallback = async () => {
+    const res = typeof Messages !== 'undefined' ? await Messages.deleteItem(id) : false;
+    closeModal('confirmModal');
+    closeModal('msgModal');
+    if (res) {
+      showToast('Message deleted', 'success');
+      if (currentMsgId === id) currentMsgId = null;
+      updateMsgTabBadge();
+      renderMessagesAdmin();
+    } else {
+      showToast('Delete failed! Please try again.', 'error');
+    }
+  };
+  openModal('confirmModal');
+}
+
+function confirmClearMessages() {
+  $('#confirmTitle').textContent = 'Clear All Messages';
+  $('#confirmMessage').innerHTML = 'Permanently delete <strong>ALL</strong> customer messages? This cannot be undone.';
+  confirmCallback = async () => {
+    const res = typeof Messages !== 'undefined' ? await Messages.clearAll() : false;
+    closeModal('confirmModal');
+    if (res) {
+      showToast('All messages cleared', 'success');
+      currentMsgId = null;
+      updateMsgTabBadge();
+      renderMessagesAdmin();
+    } else {
+      showToast('Clear failed! Please try again.', 'error');
+    }
+  };
+  openModal('confirmModal');
+}
+
+/* ==========================================================
+   GitHub Sync
+   ----------------------------------------------------------
+   "Sync to GitHub" writes everything stored in this admin —
+   products, page content, banners, category icons, blog posts,
+   social links and every image uploaded here (images are embedded
+   in data.js) — into the repository as a commit, using GitHub's
+   REST API directly from the browser.
+   ========================================================== */
+
+function openGithubModal() {
+  if (typeof GHSync === 'undefined') {
+    showToast('GitHub sync module failed to load', 'error');
+    return;
+  }
+  const cfg = GHSync.loadConfig();
+  $('#ghOwner').value = cfg.owner;
+  $('#ghRepo').value = cfg.repo;
+  $('#ghBranch').value = cfg.branch;
+  $('#ghPath').value = cfg.path;
+  $('#ghToken').value = cfg.token || '';
+  $('#ghAlsoImages').checked = !!cfg.alsoImages;
+  $('#ghFileBased').checked = !!cfg.fileBased;
+
+  const last = GHSync.loadLast();
+  if (last && last.url) {
+    setGithubStatus('Last sync: ' + escapeAttr(last.time || '') + ' — '
+      + '<a href="' + escapeAttr(last.url) + '" target="_blank" rel="noopener">view commit</a>'
+      + ' (' + escapeAttr((last.files || 1) + ' file' + (last.files > 1 ? 's' : '')) + ', '
+      + Math.round((last.bytes || 0) / 1024) + ' KB)', 'ok');
+  } else {
+    setGithubStatus('Nothing pushed yet from this browser.', '');
+  }
+  openModal('githubModal');
+}
+
+function setGithubStatus(html, kind) {
+  const box = $('#githubStatus');
+  if (!box) return;
+  if (!html) { box.hidden = true; box.innerHTML = ''; box.className = 'github-status'; return; }
+  box.hidden = false;
+  box.innerHTML = html;
+  box.className = 'github-status' + (kind === 'ok' ? ' is-ok' : (kind === 'err' ? ' is-err' : ''));
+}
+
+/* Read + lightly validate the form; returns null when invalid. */
+function readGithubForm() {
+  const cfg = {
+    owner: $('#ghOwner').value.trim(),
+    repo: $('#ghRepo').value.trim(),
+    branch: $('#ghBranch').value.trim() || 'main',
+    path: ($('#ghPath').value.trim() || 'data.js').replace(/^\/+/, '').replace(/\\/g, '/'),
+    token: $('#ghToken').value.trim(),
+    alsoImages: $('#ghAlsoImages').checked,
+    fileBased: $('#ghFileBased').checked
+  };
+  if (!cfg.owner) { showToast('Please enter the repository owner', 'error'); $('#ghOwner').focus(); return null; }
+  if (!cfg.repo) { showToast('Please enter the repository name', 'error'); $('#ghRepo').focus(); return null; }
+  if (!cfg.token) { showToast('Please paste your GitHub access token', 'error'); $('#ghToken').focus(); return null; }
+  return cfg;
+}
+
+async function testGithubConnection() {
+  const cfg = readGithubForm();
+  if (!cfg) return;
+  setGithubStatus('Checking access to ' + escapeAttr(cfg.owner + '/' + cfg.repo) + '…', '');
+  try {
+    const repo = await GHSync.testConnection(cfg);
+    GHSync.saveConfig(Object.assign({}, cfg));
+    let html = 'Connected to <code>' + escapeAttr(repo.fullName) + '</code>'
+      + (repo.private ? ' (private)' : ' (public)')
+      + ', default branch <code>' + escapeAttr(repo.defaultBranch) + '</code>. ';
+
+    // Inspect the token itself: scopes + type, so we can warn before pushing.
+    let tokenNote = '';
+    try {
+      const t = await GHSync.inspectToken(cfg);
+      if (t.error) {
+        tokenNote = 'But the token is invalid: ' + escapeAttr(t.error);
+      } else if (t.type === 'fine-grained') {
+        tokenNote = 'Token is <strong>fine-grained</strong> (login <code>' + escapeAttr(t.login || '')
+          + '</code>). Confirm its settings grant <strong>"Contents: Read and write"</strong> for '
+          + '<code>' + escapeAttr(cfg.owner + '/' + cfg.repo) + '</code>'
+          + (t.sso ? ' and that SSO is authorized for the org' : '') + '.';
+      } else {
+        const hasRepo = t.scopes.includes('repo');
+        const hasPublic = t.scopes.includes('public_repo');
+        if (!hasRepo && !hasPublic) {
+          tokenNote = 'But this classic token only has scopes ['
+            + escapeAttr(t.scopes.join(', ') || 'none') + '] — it is missing the <strong>repo</strong> '
+            + 'scope needed to write. Regenerate the token with <strong>repo</strong> ticked.';
+        } else if (repo.private && !hasRepo) {
+          tokenNote = 'This classic token only has <strong>public_repo</strong>, but the repo is private — '
+            + 'you also need the full <strong>repo</strong> scope.';
+        } else {
+          tokenNote = 'Classic token (login <code>' + escapeAttr(t.login || '') + '</code>) has write '
+            + 'scope [' + escapeAttr(t.scopes.join(', ')) + '].';
+        }
+      }
+    } catch (te) {
+      tokenNote = 'Could not inspect token: ' + escapeAttr(te.message);
+    }
+
+    if (!repo.hasPush) {
+      html += 'However, this token has <strong>no push permission</strong> on the repo. ' + tokenNote;
+      setGithubStatus(html, 'err');
+    } else {
+      html += (repo.private ? 'You have push access. ' : 'Public repo, push access confirmed. ') + tokenNote;
+      setGithubStatus(html, 'ok');
+      showToast('GitHub connection OK', 'success');
+    }
+  } catch (e) {
+    setGithubStatus(escapeAttr(e.message), 'err');
+    showToast('Connection failed: ' + e.message, 'error');
+  }
+}
+
+async function pushToGithub() {
+  const cfg = readGithubForm();
+  if (!cfg) return;
+  const pushBtn = $('#btnGithubPush');
+  const testBtn = $('#btnGithubTest');
+  const label = pushBtn.textContent;
+  pushBtn.disabled = true;
+  if (testBtn) testBtn.disabled = true;
+  pushBtn.textContent = 'Pushing…';
+  setGithubStatus('Collecting everything stored in this admin…', '');
+  try {
+    GHSync.saveConfig(Object.assign({}, cfg));
+    const bundle = await buildPublishBundle();
+    setGithubStatus('Uploading <code>' + escapeAttr(cfg.path) + '</code> and any images to GitHub…', '');
+    const res = await GHSync.push(cfg, bundle, {});
+    let msg = 'Committed ' + res.files.length + ' file' + (res.files.length > 1 ? 's' : '')
+      + ' to <code>' + escapeAttr(cfg.owner + '/' + cfg.repo) + '</code> on branch <code>'
+      + escapeAttr(cfg.branch) + '</code> (' + Math.round((res.dataBytes + (res.imageBytes || 0)) / 1024) + ' KB)';
+    const head = res.files[0];
+    if (head && head.url) {
+      msg += ' — <a href="' + escapeAttr(head.url) + '" target="_blank" rel="noopener">view on GitHub</a>';
+    }
+    if (res.imageCount && res.imageCount > 0) {
+      msg += '<br>' + res.imageCount + ' image file(s) written to <code>images/uploads/</code>.';
+    }
+    (res.warnings || []).forEach(function (w) { msg += '<br>' + escapeAttr(w); });
+    setGithubStatus(msg, 'ok');
+    showToast('Pushed to GitHub — ' + res.files.length + ' file(s) committed', 'success');
+  } catch (e) {
+    setGithubStatus(escapeAttr(e.message), 'err');
+    showToast('GitHub push failed: ' + e.message, 'error');
+  } finally {
+    pushBtn.disabled = false;
+    if (testBtn) testBtn.disabled = false;
+    pushBtn.textContent = label;
+  }
+}
+
+/* Publish content as separate repository files instead of one big data.js
+   blob: images under images/, products/posts under content/*.json, and a
+   slim data.js index carrying the fileBased flag so the live site loads
+   them on demand. */
+async function pushAsFilesToGithub() {
+  const cfg = readGithubForm();
+  if (!cfg) return;
+  const pushBtn = $('#btnGithubPushFiles');
+  const label = pushBtn.textContent;
+  pushBtn.disabled = true;
+  setGithubStatus('Building the file set (images + content JSON + index)…', '');
+  try {
+    GHSync.saveConfig(Object.assign({}, cfg));
+    const bundle = await buildPublishBundle();
+    const files = GHSync.buildFileSet(bundle, {});
+    const res = await GHSync.pushFileSet(cfg, files, {
+      onProgress: function (f, i, total) {
+        setGithubStatus('Committing ' + (i + 1) + ' / ' + total + ' — <code>'
+          + escapeAttr(f.path) + '</code>', '');
+      }
+    });
+    let msg = 'Committed ' + res.files.length + ' file' + (res.files.length > 1 ? 's' : '')
+      + ' to <code>' + escapeAttr(cfg.owner + '/' + cfg.repo) + '</code> on <code>'
+      + escapeAttr(cfg.branch) + '</code> (' + Math.round((res.dataBytes + (res.imageBytes || 0)) / 1024) + ' KB)';
+    if (res.imageBytes) msg += '<br>' + Math.round(res.imageBytes / 1024) + ' KB of images written to <code>images/</code>.';
+    const head = res.files[res.files.length - 1];
+    if (head && head.url) {
+      msg += ' — <a href="' + escapeAttr(head.url) + '" target="_blank" rel="noopener">view on GitHub</a>';
+    }
+    (res.warnings || []).forEach(function (w) { msg += '<br>' + escapeAttr(w); });
+    setGithubStatus(msg, 'ok');
+    showToast('Pushed as files — ' + res.files.length + ' file(s) committed', 'success');
+  } catch (e) {
+    setGithubStatus(escapeAttr(e.message), 'err');
+    showToast('GitHub file push failed: ' + e.message, 'error');
+  } finally {
+    pushBtn.disabled = false;
+    pushBtn.textContent = label;
+  }
+}
+
+/* Same as pushToGithub(), plus every static file of the site itself
+   (HTML / CSS / JS), so the repository mirrors the live website. */
+async function pushWholeSiteToGithub() {
+  const cfg = readGithubForm();
+  if (!cfg) return;
+  const pushBtn = $('#btnGithubPushSite');
+  const pushPrimary = $('#btnGithubPush');
+  const testBtn = $('#btnGithubTest');
+  const label = pushBtn.textContent;
+  [pushBtn, pushPrimary, testBtn].forEach(function (b) { if (b) b.disabled = true; });
+  pushBtn.textContent = 'Pushing…';
+  setGithubStatus('Reading the site files and pushing them one by one…', '');
+  try {
+    GHSync.saveConfig(Object.assign({}, cfg));
+    const bundle = await buildPublishBundle();
+    const res = await GHSync.pushSite(cfg, bundle, null, {});
+    let msg = 'Committed ' + res.files.length + ' file' + (res.files.length > 1 ? 's' : '')
+      + ' to <code>' + escapeAttr(cfg.owner + '/' + cfg.repo) + '</code> on <code>'
+      + escapeAttr(cfg.branch) + '</code> — the whole site plus the latest <code>'
+      + escapeAttr(cfg.path) + '</code>.';
+    if (res.imageCount) msg += '<br>' + res.imageCount + ' image file(s) written to <code>images/uploads/</code>.';
+    (res.warnings || []).forEach(function (w) { msg += '<br>' + escapeAttr(w); });
+    setGithubStatus(msg, 'ok');
+    showToast('Whole site pushed — ' + res.files.length + ' files committed', 'success');
+  } catch (e) {
+    setGithubStatus(escapeAttr(e.message), 'err');
+    showToast('Push failed: ' + e.message, 'error');
+  } finally {
+    [pushBtn, pushPrimary, testBtn].forEach(function (b) { if (b) b.disabled = false; });
+    pushBtn.textContent = label;
+  }
+}

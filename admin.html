@@ -62,6 +62,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16v12H5.17L4 17.17V4z"/><path d="M8 10h8M8 7h8M8 13h5"/></svg>
           Blog Articles
         </button>
+        <button class="admin-tab" data-tab="social" id="tabBtnSocial">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+          Social Links
+        </button>
+        <button class="admin-tab" data-tab="messages" id="tabBtnMessages">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
+          Messages
+          <span class="tab-badge" id="msgTabBadge" hidden>0</span>
+        </button>
       </div>
 
       <!-- ===== Products Tab ===== -->
@@ -93,6 +102,10 @@
           <button class="btn-admin btn-admin-primary" id="btnAdd">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
             Add Product
+          </button>
+          <button class="btn-admin btn-admin-outline" id="btnGithubSync" title="Push every change made in this admin — including uploaded images — into your GitHub repository">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 16l-4-4-4 4M12 12v9"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 15.3"/><path d="M16 16l-4-4-4 4"/></svg>
+            Sync to GitHub
           </button>
         </div>
       </div>
@@ -302,6 +315,87 @@
           <!-- Filled by JS -->
         </div>
       </div><!-- /#tabBlog -->
+
+      <!-- ===== Social Links Tab ===== -->
+      <div class="admin-tab-content" id="tabSocial">
+        <div class="admin-header">
+          <div>
+            <h1>Social Media Links</h1>
+            <p>Manage the social icons shown in the site footer and on the Contact page ("Follow Us")</p>
+          </div>
+          <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <button class="btn-admin btn-admin-outline" id="btnSocialReset">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5"/></svg>
+              Restore Defaults
+            </button>
+            <button class="btn-admin btn-admin-primary" id="btnAddSocial">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              Add Social Link
+            </button>
+          </div>
+        </div>
+
+        <div class="banner-admin-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+          Paste the full URL (starting with <strong>https://</strong>) for each platform — e.g. <strong>https://www.facebook.com/yourpage</strong>.
+          Icons with an empty URL still show as a dimmed placeholder until you fill it in. Order here = order on the website.
+        </div>
+
+        <div id="socialAdminArea">
+          <!-- Filled by JS -->
+        </div>
+      </div><!-- /#tabSocial -->
+
+      <!-- ===== Customer Messages Tab ===== -->
+      <div class="admin-tab-content" id="tabMessages">
+        <div class="admin-header">
+          <div>
+            <h1>Customer Messages</h1>
+            <p>Messages submitted by customers from the Contact page ("Send A Message" form)</p>
+          </div>
+          <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <button class="btn-admin btn-admin-outline" id="btnMsgRefresh" onclick="loadMessagesManager()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+            <button class="btn-admin btn-admin-outline" id="btnMsgClear" onclick="confirmClearMessages()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+              Clear All
+            </button>
+          </div>
+        </div>
+
+        <div class="banner-admin-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
+          Click a message to read the full content and write a reply. <strong>Send Reply</strong> saves the reply and opens your email client with everything pre-filled (a static website cannot send email directly).
+          <br><strong>Forward To Email:</strong> save your email address once — new messages from the live website will also arrive directly in your inbox. The very first forwarded message triggers an <em>activation</em> email from FormSubmit; click <strong>Activate</strong> in it once to start receiving.
+        </div>
+
+        <div class="msg-sync-bar" id="msgSyncBar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+          <span class="msg-sync-label">Forward To Email</span>
+          <input type="email" id="msgFwdInput" placeholder="Your email address" spellcheck="false" autocomplete="off">
+          <button class="btn-admin btn-admin-outline btn-admin-sm" id="btnMsgFwdSave">Save</button>
+          <button class="btn-admin btn-admin-outline btn-admin-sm" id="btnMsgFwdTest">Send Test</button>
+          <span class="msg-sync-status" id="msgSyncStatus">Not set</span>
+        </div>
+
+        <div class="msg-filter-bar">
+          <div class="msg-filters" id="msgFilters">
+            <button class="msg-filter active" data-filter="all">All</button>
+            <button class="msg-filter" data-filter="new">New</button>
+            <button class="msg-filter" data-filter="read">Read</button>
+            <button class="msg-filter" data-filter="replied">Replied</button>
+          </div>
+          <div class="admin-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="msgSearchInput" placeholder="Search messages...">
+          </div>
+        </div>
+
+        <div id="msgAdminArea">
+          <!-- Filled by JS -->
+        </div>
 
     </div>
   </main>
@@ -637,6 +731,38 @@
     </div>
   </div>
 
+  <!-- Message Detail Modal (View / Reply) -->
+  <div class="modal-overlay" id="msgModal">
+    <div class="modal modal-msg">
+      <div class="modal-header">
+        <h2 id="msgModalTitle">Message</h2>
+        <button class="modal-close" onclick="closeModal('msgModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="msg-detail" id="msgDetail">
+          <!-- Filled by JS -->
+        </div>
+        <div class="msg-replies-wrap">
+          <h3 class="msg-replies-title">Replies</h3>
+          <div id="msgReplies">
+            <!-- Filled by JS -->
+          </div>
+          <textarea id="msgReplyText" placeholder="Write a reply to this customer..." rows="4"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-admin btn-admin-outline" id="btnMsgDelete" onclick="confirmDeleteCurrentMsg()">Delete</button>
+        <button class="btn-admin btn-admin-outline" id="btnMsgEmail" onclick="openMsgInEmail()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 6 10-6"/></svg>
+          Open in Email
+        </button>
+        <button class="btn-admin btn-admin-primary" id="btnMsgSendReply" onclick="sendMsgReply()">Send Reply</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirm Delete Dialog -->
   <div class="confirm-overlay" id="confirmModal">
     <div class="confirm-box">
@@ -648,6 +774,111 @@
       <div class="confirm-actions">
         <button class="btn-admin btn-admin-outline" onclick="closeModal('confirmModal')">Cancel</button>
         <button class="btn-admin btn-admin-danger" id="btnConfirmAction">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Social Link Modal (Add/Edit) -->
+  <div class="modal-overlay" id="socialModal">
+    <div class="modal modal-social">
+      <div class="modal-header">
+        <h2 id="socialModalTitle">Add Social Link</h2>
+        <button class="modal-close" onclick="closeModal('socialModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="socialForm">
+          <input type="hidden" id="socialId">
+          <div class="form-group">
+            <label for="socialPlatform">Platform *</label>
+            <select id="socialPlatform" required></select>
+          </div>
+          <div class="form-group">
+            <label for="socialUrl">Profile URL</label>
+            <input type="text" id="socialUrl" placeholder="https://www.instagram.com/yourbrand">
+            <p class="image-hint">Full link starting with https:// (or mailto: / tel:). Leave empty to keep a placeholder icon.</p>
+          </div>
+          <div class="form-group">
+            <label>Preview</label>
+            <div class="social-preview" id="socialPreview"></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-admin btn-admin-outline" onclick="closeModal('socialModal')">Cancel</button>
+        <button class="btn-admin btn-admin-primary" id="btnSaveSocial">Save Link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub Sync Modal -->
+  <div class="modal-overlay" id="githubModal">
+    <div class="modal modal-github">
+      <div class="modal-header">
+        <h2 id="githubModalTitle">Sync to GitHub</h2>
+        <button class="modal-close" onclick="closeModal('githubModal')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="image-hint" style="margin-bottom:1rem;">
+          Writes everything changed in this admin into your repository as a normal commit: products, page
+          content, banners, category icons, blog posts, social links and <strong>every image you uploaded</strong>
+          (images travel inside <code>data.js</code> as embedded data). Files go straight from your browser to
+          GitHub — there is no middle server.
+        </p>
+        <form id="githubForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ghOwner">Repository owner *</label>
+              <input type="text" id="ghOwner" placeholder="zzbrabbit">
+            </div>
+            <div class="form-group">
+              <label for="ghRepo">Repository name *</label>
+              <input type="text" id="ghRepo" placeholder="MYH-">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="ghBranch">Branch</label>
+              <input type="text" id="ghBranch" placeholder="main">
+            </div>
+            <div class="form-group">
+              <label for="ghPath">File path in repo</label>
+              <input type="text" id="ghPath" placeholder="data.js">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="ghToken">GitHub access token *</label>
+            <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off">
+            <p class="image-hint">
+              GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic), tick
+              <strong>repo</strong> (fine-grained tokens: <strong>Contents: Read &amp; Write</strong>).
+              The token stays in this browser's local storage and is never written into data.js.
+            </p>
+          </div>
+          <div class="form-group gh-check">
+            <label for="ghAlsoImages">
+              <input type="checkbox" id="ghAlsoImages">
+              Also save each uploaded image as a separate file under <code>images/uploads/</code>
+            </label>
+          </div>
+          <div class="form-group gh-check">
+            <label for="ghFileBased">
+              <input type="checkbox" id="ghFileBased">
+              Store as files in the repo (recommended): images → <code>images/</code>, products/posts → <code>content/*.json</code>, and a slim <code>data.js</code> index. Keeps the repo clean and the live site loads faster.
+            </label>
+          </div>
+          <div class="github-status" id="githubStatus" hidden></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-admin btn-admin-outline" onclick="closeModal('githubModal')">Close</button>
+        <button class="btn-admin btn-admin-outline" id="btnGithubTest">Test Connection</button>
+        <button class="btn-admin btn-admin-outline" id="btnGithubPushSite" title="Also commit every HTML / CSS / JS file of the site itself">Push Whole Site</button>
+        <button class="btn-admin btn-admin-primary" id="btnGithubPushFiles" title="Commit content as separate files instead of one big data.js blob">Push as files</button>
+        <button class="btn-admin btn-admin-primary" id="btnGithubPush">Push Now</button>
       </div>
     </div>
   </div>
@@ -682,6 +913,7 @@
 
   <script src="data.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/github-sync.js"></script>
   <script>
     // Auth guard — redirect to login if not authenticated
     if (!Auth.requireAuth()) {

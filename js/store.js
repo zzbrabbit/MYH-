@@ -650,6 +650,87 @@ function getPublishedData() {
   } catch (e) { return null; }
 }
 
+/* ---------- Published-version reconciliation ----------
+   Returning visitors keep a copy of the published content in IndexedDB.
+   When the admin pushes a newer data.js (its publishedAt advances), we must
+   re-adopt that bundle so those visitors stop showing stale content without
+   having to clear their browser storage by hand. */
+
+const ADOPT_TS_KEY = 'myhbeauty_adopted_publishedAt';
+
+/* Epoch ms of the published bundle's publishedAt, or 0 if missing/invalid. */
+function publishedTimestamp() {
+  const pub = getPublishedData();
+  if (pub && pub.publishedAt) {
+    const t = Date.parse(pub.publishedAt);
+    if (!isNaN(t)) return t;
+  }
+  return 0;
+}
+
+/* The publishedAt epoch we last mirrored into IndexedDB (0 = never). */
+async function getAdoptedTimestamp() {
+  try {
+    const v = await DBStorage.getItem(ADOPT_TS_KEY);
+    return Number(v) || 0;
+  } catch (e) { return 0; }
+}
+
+/* Record that published version `ts` now lives in IndexedDB. */
+async function markAdopted(ts) {
+  try { await DBStorage.setItem(ADOPT_TS_KEY, ts); } catch (e) { /* ignore */ }
+}
+
+/* Pull the live content for `type` from the published bundle. Supports both
+   file-based (per-item JSON) and embedded bundles. Returns the data, or null
+   when the published bundle has nothing usable for this type. */
+async function adoptFromPublished(type) {
+  const pub = getPublishedData();
+  if (!pub) return null;
+  if (pub.fileBased) {
+    try {
+      const items = await fetchFileBased(type);
+      if (items && items.length) return items;
+    } catch (e) { /* fall through to the embedded listing */ }
+  }
+  const key = (type === 'product') ? 'products'
+            : (type === 'post') ? 'posts'
+            : type; // 'banners' | 'catnav' | 'social'
+  if (type === 'content') {
+    const c = pub.content;
+    if (c && typeof c === 'object' && Object.keys(c).length) return JSON.parse(JSON.stringify(c));
+    return null;
+  }
+  const arr = pub[key];
+  if (Array.isArray(arr) && arr.length) return JSON.parse(JSON.stringify(arr));
+  return null;
+}
+
+/* Opt-in file-based content loading. When the published index carries
+   fileBased:true, pull each product/post body from its own JSON file
+   (content/<type>/<id>.json) instead of the embedded blob. Runs inside
+   the async init(), so the synchronous getters stay untouched. Returns an
+   array of items, or null when unavailable. */
+async function fetchFileBased(type) {
+  try {
+    const pub = getPublishedData();
+    if (!pub || !pub.fileBased) return null;
+    const listings = (type === 'product') ? (pub.products || []) : (pub.posts || []);
+    if (!listings.length) return null;
+    const folder = (type === 'product') ? 'content/products/' : 'content/posts/';
+    const items = [];
+    await Promise.all(listings.map(async (li) => {
+      try {
+        const res = await fetch(folder + encodeURIComponent(li.id) + '.json', { cache: 'no-store' });
+        if (!res.ok) return;
+        const item = await res.json();
+        if (item && typeof item === 'object') items.push(item);
+      } catch (e) { /* ignore */ }
+    }));
+    return items.length ? items : null;
+  } catch (e) { return null; }
+}
+
 /* ---------- Storage Key ---------- */
 const STORAGE_KEY = 'myhbeauty_products';
 
@@ -696,13 +777,31 @@ const Store = {
       }
 
       if (!products) {
-        const pub = getPublishedData();
-        if (pub && Array.isArray(pub.products) && pub.products.length) {
-          products = JSON.parse(JSON.stringify(pub.products));
+        // First visit: adopt the published bundle, or seed defaults.
+        const fresh = await adoptFromPublished('product');
+        if (fresh && fresh.length) {
+          products = fresh;
         } else {
           products = [...DEFAULT_PRODUCTS];
         }
         await DBStorage.setItem(STORAGE_KEY, products);
+        const ts = publishedTimestamp();
+        if (ts) await markAdopted(ts);
+      } else {
+        // Returning visitor: if the admin pushed a newer bundle since we last
+        // mirrored it, re-adopt so stale IndexedDB content is replaced.
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('product');
+            if (fresh && fresh.length) {
+              products = fresh;
+              await DBStorage.setItem(STORAGE_KEY, products);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local copy if the fetch fails */ }
+        }
       }
 
       // Run migrations and cache
@@ -1691,10 +1790,25 @@ const Content = {
         } catch (e) { /* ignore */ }
       }
       if (!all) {
-        const pub = getPublishedData();
-        if (pub && pub.content && typeof pub.content === 'object' && Object.keys(pub.content).length) {
-          all = JSON.parse(JSON.stringify(pub.content));
+        const fresh = await adoptFromPublished('content');
+        if (fresh && typeof fresh === 'object') {
+          all = fresh;
           await DBStorage.setItem(CONTENT_KEY, all);
+          const ts = publishedTimestamp();
+          if (ts) await markAdopted(ts);
+        }
+      } else {
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('content');
+            if (fresh && typeof fresh === 'object') {
+              all = fresh;
+              await DBStorage.setItem(CONTENT_KEY, all);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local */ }
         }
       }
       this._cache = all || {};
@@ -1821,11 +1935,27 @@ const Banners = {
         } catch (e) { /* ignore */ }
       }
       if (!Array.isArray(list)) {
-        const pub = getPublishedData();
-        if (pub && Array.isArray(pub.banners)) {
-          list = JSON.parse(JSON.stringify(pub.banners));
+        const fresh = await adoptFromPublished('banners');
+        if (fresh && fresh.length) {
+          list = fresh;
+          await DBStorage.setItem(BANNER_KEY, list);
+          const ts = publishedTimestamp();
+          if (ts) await markAdopted(ts);
         } else {
           list = [...DEFAULT_BANNERS];
+        }
+      } else {
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('banners');
+            if (fresh && fresh.length) {
+              list = fresh;
+              await DBStorage.setItem(BANNER_KEY, list);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local */ }
         }
       }
       // Normalize shape (an intentionally empty array stays empty -> slider hidden)
@@ -1901,10 +2031,25 @@ const CatNav = {
         } catch (e) { /* ignore */ }
       }
       if (!saved || typeof saved !== 'object') {
-        const pub = getPublishedData();
-        if (pub && Array.isArray(pub.catnav) && pub.catnav.length) {
-          saved = JSON.parse(JSON.stringify(pub.catnav));
+        const fresh = await adoptFromPublished('catnav');
+        if (fresh && fresh.length) {
+          saved = fresh;
           await DBStorage.setItem(CATNAV_KEY, saved);
+          const ts = publishedTimestamp();
+          if (ts) await markAdopted(ts);
+        }
+      } else {
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('catnav');
+            if (fresh && fresh.length) {
+              saved = fresh;
+              await DBStorage.setItem(CATNAV_KEY, saved);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local */ }
         }
       }
       // Merge any saved images onto the fixed 8-category list
@@ -1983,16 +2128,31 @@ const Posts = {
         } catch (e) { /* ignore */ }
       }
       if (!Array.isArray(list)) {
-        const pub = getPublishedData();
-        if (pub && Array.isArray(pub.posts) && pub.posts.length) {
-          // Published bundle is the live content — persist it so the admin
-          // can keep editing on top of it from any device.
-          list = JSON.parse(JSON.stringify(pub.posts));
+        // First visit: adopt the published bundle, or seed defaults.
+        const fresh = await adoptFromPublished('post');
+        if (fresh && fresh.length) {
+          list = fresh;
           await DBStorage.setItem(POST_KEY, list);
+          const ts = publishedTimestamp();
+          if (ts) await markAdopted(ts);
         } else {
-          // First visit — seed defaults but do NOT persist yet (so "Reset"
-          // in the admin always restores the original sample set).
+          // Seed defaults but do NOT persist yet (so "Reset" in the admin
+          // always restores the original sample set).
           list = DEFAULT_POSTS.map(p => ({ ...p }));
+        }
+      } else {
+        // Returning visitor: re-adopt when the admin pushed a newer bundle.
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('post');
+            if (fresh && fresh.length) {
+              list = fresh;
+              await DBStorage.setItem(POST_KEY, list);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local copy */ }
         }
       }
       this._cache = list.map(normalizePost);
@@ -2077,5 +2237,391 @@ function normalizePost(p) {
     featured: !!base.featured,
     tags: Array.isArray(base.tags) ? base.tags : [],
     content: base.content || ''
+  };
+}
+
+/* ============================================
+   Social Media Links Module
+   Admin-manageable social icons rendered in
+   every ".footer-social" block (site footer and
+   the contact page "Follow Us" area).
+   ============================================ */
+const SOCIAL_KEY = 'myhbeauty_social';
+
+/* Platform library — id -> label + inline SVG (24x24, stroke icons) */
+const SOCIAL_PLATFORMS = {
+  instagram: {
+    label: 'Instagram',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>'
+  },
+  facebook: {
+    label: 'Facebook',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>'
+  },
+  linkedin: {
+    label: 'LinkedIn',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>'
+  },
+  youtube: {
+    label: 'YouTube',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22.54 6.42a2.78 2.78 0 00-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 00-1.94 2A29 29 0 001 11.75a29 29 0 00.46 5.33A2.78 2.78 0 003.4 19c1.72.46 8.6.42 8.6.42s6.88 0 8.6-.42a2.78 2.78 0 001.94-2 29 29 0 00.46-5.25 29 29 0 00-.46-5.33z"/><path d="M9.75 15.02l5.75-3.27-5.75-3.27v6.54z"/></svg>'
+  },
+  tiktok: {
+    label: 'TikTok',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12a4 4 0 104 4V4c1 2.5 3 4 5 4"/></svg>'
+  },
+  x: {
+    label: 'X (Twitter)',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4l7.5 9.5L4.5 20h2.2l6-6.6 5 6.6H21l-7.6-10L20 4h-2.2l-5.5 6L8 4H4z"/></svg>'
+  },
+  whatsapp: {
+    label: 'WhatsApp',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 11.5a8.5 8.5 0 01-12.6 7.4L3 21l2.2-5.3A8.5 8.5 0 1121 11.5z"/><path d="M8.5 9.5c0 3 2 5 5 5 .8 0 1.5-.6 1.5-1.4l-1.6-.8-1 1c-1-.5-1.7-1.2-2.2-2.2l1-1-.8-1.6c-.8 0-1.4.7-1.4 1.5z"/></svg>'
+  },
+  pinterest: {
+    label: 'Pinterest',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7c-2.2 0-4 1.6-4 3.8 0 1 .5 1.9 1.3 2.4M12 7c2.2 0 4 1.6 4 3.8 0 2.4-1.8 4.2-4 4.2-.6 0-1.2-.1-1.7-.4M10.6 20l1.8-7"/></svg>'
+  },
+  wechat: {
+    label: 'WeChat',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 4C5.7 4 3 6.2 3 9c0 1.6.9 3 2.3 3.9L4.8 15l2.1-1.2c.6.2 1.3.3 2.1.3h.4"/><path d="M21 14.5c0-2.5-2.4-4.5-5.4-4.5S10.2 12 10.2 14.5s2.4 4.5 5.4 4.5c.7 0 1.3-.1 1.9-.3l1.9 1-.4-1.9c1.2-.7 2-1.9 2-3.3z"/></svg>'
+  },
+  email: {
+    label: 'Email',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 6 10-6"/></svg>'
+  },
+  phone: {
+    label: 'Phone',
+    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8.1 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg>'
+  }
+};
+
+/* Platform ids in the order shown in the admin dropdown */
+const SOCIAL_PLATFORM_IDS = ['instagram', 'facebook', 'linkedin', 'youtube', 'tiktok', 'x', 'whatsapp', 'pinterest', 'wechat', 'email', 'phone'];
+
+/* Built-in four icons, links left empty for the admin to fill in */
+const DEFAULT_SOCIAL = [
+  { id: 'so01', platform: 'instagram', url: '' },
+  { id: 'so02', platform: 'facebook',  url: '' },
+  { id: 'so03', platform: 'linkedin',  url: '' },
+  { id: 'so04', platform: 'youtube',   url: '' }
+];
+
+const Social = {
+  _cache: null,
+  _ready: null,
+
+  /* Initialize from IndexedDB (migrates legacy localStorage / published data if present) */
+  async init() {
+    if (this._ready) return this._ready;
+    this._ready = (async () => {
+      await DBStorage.init();
+      let list = null;
+      try {
+        list = await DBStorage.getItem(SOCIAL_KEY);
+      } catch (e) { /* ignore */ }
+      if (!Array.isArray(list)) {
+        try {
+          const legacy = localStorage.getItem(SOCIAL_KEY);
+          if (legacy) {
+            const parsed = JSON.parse(legacy);
+            if (Array.isArray(parsed)) list = parsed;
+          }
+        } catch (e) { /* ignore */ }
+      }
+      if (!Array.isArray(list)) {
+        const fresh = await adoptFromPublished('social');
+        if (fresh && fresh.length) {
+          list = fresh;
+          await DBStorage.setItem(SOCIAL_KEY, list);
+          const ts = publishedTimestamp();
+          if (ts) await markAdopted(ts);
+        } else {
+          list = DEFAULT_SOCIAL.map(s => ({ ...s }));
+        }
+      } else {
+        const pubTs = publishedTimestamp();
+        const adoptedTs = await getAdoptedTimestamp();
+        if (pubTs && pubTs > adoptedTs) {
+          try {
+            const fresh = await adoptFromPublished('social');
+            if (fresh && fresh.length) {
+              list = fresh;
+              await DBStorage.setItem(SOCIAL_KEY, list);
+              await markAdopted(pubTs);
+            }
+          } catch (e) { /* keep local */ }
+        }
+      }
+      this._cache = list.map(normalizeSocial);
+      return true;
+    })();
+    return this._ready;
+  },
+
+  /* All links in display order (cloned copy) */
+  getAll() {
+    const base = this._cache || DEFAULT_SOCIAL.map(s => ({ ...s }));
+    return base.map(s => ({ ...s }));
+  },
+
+  /* All platform definitions for the admin dropdown */
+  getPlatforms() {
+    return SOCIAL_PLATFORM_IDS.map(id => ({
+      id: id,
+      label: SOCIAL_PLATFORMS[id] ? SOCIAL_PLATFORMS[id].label : id
+    }));
+  },
+
+  /* Inline SVG markup for one platform ('' when unknown) */
+  getIcon(platform) {
+    const p = SOCIAL_PLATFORMS[platform];
+    return p ? p.svg : '';
+  },
+
+  getItem(id) {
+    return this.getAll().find(s => s.id === id) || null;
+  },
+
+  /* Add a link — returns the new item on success */
+  async addItem(item) {
+    const list = this.getAll();
+    const created = normalizeSocial({
+      ...item,
+      id: 'so' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+    });
+    list.push(created);
+    const ok = await this.saveAll(list);
+    return ok ? this.getItem(created.id) : null;
+  },
+
+  /* Update a link — returns the item on success */
+  async updateItem(id, updates) {
+    const list = this.getAll();
+    const idx = list.findIndex(s => s.id === id);
+    if (idx === -1) return null;
+    list[idx] = normalizeSocial({ ...list[idx], ...updates, id: id });
+    const ok = await this.saveAll(list);
+    return ok ? this.getItem(id) : null;
+  },
+
+  /* Delete a link — returns the updated list on success */
+  async deleteItem(id) {
+    const list = this.getAll().filter(s => s.id !== id);
+    const ok = await this.saveAll(list);
+    return ok ? list : null;
+  },
+
+  /* Save the whole list — returns true on success */
+  async saveAll(list) {
+    const clean = (Array.isArray(list) ? list : []).map(normalizeSocial);
+    const ok = await DBStorage.setItem(SOCIAL_KEY, clean);
+    if (ok) this._cache = clean;
+    return ok;
+  },
+
+  /* Restore the built-in four icons (links cleared) */
+  async resetToDefault() {
+    const ok = await this.saveAll(DEFAULT_SOCIAL.map(s => ({ ...s })));
+    return ok ? this.getAll() : null;
+  }
+};
+
+/* Normalize one social link to its canonical shape */
+function normalizeSocial(s) {
+  const base = s || {};
+  const platform = SOCIAL_PLATFORMS[base.platform] ? base.platform : 'instagram';
+  return {
+    id: base.id || '',
+    platform: platform,
+    url: (base.url || '').trim()
+  };
+}
+
+/* ============================================
+   Contact Messages Module
+   Stores "Send A Message" submissions from the
+   contact page so the admin can read, reply to
+   and manage customer inquiries.
+   NOTE: messages are customer data — they are
+   NOT part of the publish bundle (data.js).
+   ============================================ */
+const MSG_KEY = 'myhbeauty_messages';
+const MSG_FWD_KEY = 'myhbeauty_msg_forward'; // where new messages are emailed to
+
+/* Subject value -> display label (mirrors contact.html options) */
+const MSG_SUBJECT_LABELS = {
+  product: 'Product Inquiry',
+  oem: 'OEM / ODM Partnership',
+  distributor: 'Become a Distributor',
+  support: 'Customer Support',
+  other: 'Other'
+};
+
+/* Map a subject value to its display label */
+function msgSubjectLabel(v) {
+  return MSG_SUBJECT_LABELS[v] || 'Other';
+}
+
+const Messages = {
+  _cache: null,
+  _ready: null,
+
+  /* Initialize the message list from IndexedDB (migrates legacy localStorage if present).
+     Unlike content modules, messages are never seeded from the published bundle. */
+  async init() {
+    if (this._ready) return this._ready;
+    this._ready = (async () => {
+      await DBStorage.init();
+      let list = null;
+      try {
+        list = await DBStorage.getItem(MSG_KEY);
+      } catch (e) { /* ignore */ }
+      if (!Array.isArray(list)) {
+        try {
+          const legacy = localStorage.getItem(MSG_KEY);
+          if (legacy) {
+            const parsed = JSON.parse(legacy);
+            if (Array.isArray(parsed)) list = parsed;
+          }
+        } catch (e) { /* ignore */ }
+      }
+      if (!Array.isArray(list)) list = [];
+      this._cache = list.map(normalizeMessage);
+      return true;
+    })();
+    return this._ready;
+  },
+
+  /* All messages, newest first (cloned copy) */
+  getAll() {
+    const base = this._cache || [];
+    return base
+      .slice()
+      .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')) || String(a.id).localeCompare(String(b.id)))
+      .map(m => ({ ...m, replies: (m.replies || []).map(r => ({ ...r })) }));
+  },
+
+  /* Number of unread (status "new") messages */
+  countUnread() {
+    return (this._cache || []).filter(m => m.status === 'new').length;
+  },
+
+  /* Get a single message by id */
+  getItem(id) {
+    return this.getAll().find(m => m.id === id) || null;
+  },
+
+  /* Save a contact-form submission — returns the created message on success */
+  async add(data) {
+    await this.init();
+    const base = data || {};
+    const created = normalizeMessage({
+      ...base,
+      id: 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+      submittedAt: new Date().toISOString(),
+      status: 'new',
+      replies: []
+    });
+    const list = this.getAll();
+    list.unshift(created);
+    const ok = await this.saveAll(list);
+    return ok ? this.getItem(created.id) : null;
+  },
+
+  /* Change a message status ("new" | "read" | "replied") — returns the message on success */
+  async setStatus(id, status) {
+    await this.init();
+    const list = this.getAll();
+    const idx = list.findIndex(m => m.id === id);
+    if (idx === -1) return null;
+    list[idx] = normalizeMessage({ ...list[idx], status: status });
+    const ok = await this.saveAll(list);
+    return ok ? this.getItem(id) : null;
+  },
+
+  /* Append a reply and mark the message as replied — returns the message on success */
+  async addReply(id, text) {
+    await this.init();
+    const clean = String(text || '').trim();
+    if (!clean) return null;
+    const list = this.getAll();
+    const idx = list.findIndex(m => m.id === id);
+    if (idx === -1) return null;
+    list[idx].replies.push({ at: new Date().toISOString(), text: clean });
+    list[idx] = normalizeMessage({ ...list[idx], status: 'replied' });
+    const ok = await this.saveAll(list);
+    return ok ? this.getItem(id) : null;
+  },
+
+  /* Delete a message — returns true on success */
+  async deleteItem(id) {
+    await this.init();
+    const list = this.getAll().filter(m => m.id !== id);
+    return await this.saveAll(list);
+  },
+
+  /* Delete every message — returns true on success */
+  async clearAll() {
+    return await this.saveAll([]);
+  },
+
+  /* Save the whole list — returns true on success */
+  async saveAll(list) {
+    const clean = (Array.isArray(list) ? list : []).map(normalizeMessage);
+    const ok = await DBStorage.setItem(MSG_KEY, clean);
+    if (ok) this._cache = clean;
+    return ok;
+  },
+
+  /* ---- Forward-to-email setting (drives FormSubmit forwarding) ----
+     Priority: value saved in this browser > email baked into the
+     published bundle (data.js msgForwardEmail). */
+  async getForwardEmail() {
+    await DBStorage.init();
+    try {
+      const v = await DBStorage.getItem(MSG_FWD_KEY);
+      if (v) return String(v);
+    } catch (e) { /* ignore */ }
+    try {
+      const pub = (typeof getPublishedData === 'function') ? getPublishedData() : null;
+      if (pub && pub.msgForwardEmail) return String(pub.msgForwardEmail);
+    } catch (e) { /* ignore */ }
+    return '';
+  },
+
+  /* Save / clear the forwarding email — returns true on success */
+  async setForwardEmail(email) {
+    await DBStorage.init();
+    const v = String(email || '').trim();
+    try {
+      if (!v) {
+        await DBStorage.removeItem(MSG_FWD_KEY);
+        return true;
+      }
+      return await DBStorage.setItem(MSG_FWD_KEY, v);
+    } catch (e) {
+      return false;
+    }
+  }
+};
+
+/* Normalize one contact message to its canonical shape */
+function normalizeMessage(m) {
+  const base = m || {};
+  return {
+    id: base.id || '',
+    firstName: base.firstName || '',
+    lastName: base.lastName || '',
+    email: base.email || '',
+    phone: base.phone || '',
+    subject: base.subject || 'other',
+    company: base.company || '',
+    message: base.message || '',
+    submittedAt: base.submittedAt || '',
+    status: ['new', 'read', 'replied'].indexOf(base.status) !== -1 ? base.status : 'new',
+    replies: Array.isArray(base.replies)
+      ? base.replies.map(r => ({ at: (r && r.at) || '', text: (r && r.text) || '' }))
+      : []
   };
 }

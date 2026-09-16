@@ -2831,3 +2831,16 @@ details p { animation: fadeInUp .4s ease; }
   .blog-article-inner { padding: 0 1.25rem 1.5rem; }
   .blog-close { width: 36px; height: 36px; margin: .75rem .75rem 0 0; }
 }
+
+/* Light variant — used on the contact page "Follow Us" block (white background) */
+.footer-social-light a {
+  border-color: var(--c-line);
+  color: var(--c-text);
+}
+.footer-social-light a:hover {
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+  color: var(--c-white);
+}
+/* Icon with no URL set yet — dimmed until the admin adds a link */
+.footer-social a.is-empty { opacity: .45; }

@@ -10,6 +10,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof Banners !== 'undefined') await Banners.init();
   if (typeof Posts !== 'undefined') await Posts.init();
 
+  /* ---------- Social Media Icons (footer + contact "Follow Us") ---------- */
+  if (typeof Social !== 'undefined') {
+    /* Paint immediately so the icons never flash empty, then refresh
+       once the persisted (admin-edited) list has finished loading. */
+    try { renderSocialIcons(); } catch (e) { /* ignore */ }
+    try {
+      await Social.init();
+      renderSocialIcons();
+    } catch (e) { /* ignore */ }
+  }
+
   /* ---------- Apply CMS Content Overrides ---------- */
   if (typeof Content !== 'undefined') {
     await Content.apply();
@@ -639,8 +650,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return valid;
     };
 
-    // Real-time validation
+    // Real-time validation (skip the hidden honeypot field)
     contactForm.querySelectorAll('input, textarea, select').forEach(field => {
+      if (field.name === 'website') return;
       field.addEventListener('blur', () => validateField(field));
       field.addEventListener('input', () => {
         const group = field.closest('.form-group');
@@ -662,13 +674,74 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (allValid) {
+        // Collect the submission before the form is reset
+        const getVal = (name) => {
+          const f = contactForm.querySelector('[name="' + name + '"]');
+          return f ? f.value.trim() : '';
+        };
+        const submission = {
+          firstName: getVal('firstName'),
+          lastName: getVal('lastName'),
+          email: getVal('email'),
+          phone: getVal('phone'),
+          subject: getVal('subject'),
+          company: getVal('company'),
+          message: getVal('message')
+        };
+
         // Simulate submission
         const submitBtn = contactForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.textContent;
         submitBtn.textContent = 'Sending...';
         submitBtn.disabled = true;
 
-        setTimeout(() => {
+        setTimeout(async () => {
+          // Persist to the local database so the admin can read / reply to it
+          if (typeof Messages !== 'undefined') {
+            try { await Messages.add(submission); } catch (err) { /* ignore */ }
+          }
+          // Forward the message to the site owner's email inbox via
+          // FormSubmit (no server needed).
+          // NOTE: FormSubmit rejects requests from file:// pages, so the site
+          // must be opened through http(s) — the live site or a local server.
+          try {
+            let fwdEmail = '';
+            if (window.MYH_PUBLISHED_DATA && window.MYH_PUBLISHED_DATA.msgForwardEmail) {
+              fwdEmail = String(window.MYH_PUBLISHED_DATA.msgForwardEmail);
+            } else if (typeof Messages !== 'undefined') {
+              fwdEmail = await Messages.getForwardEmail();
+            }
+            const hpField = contactForm.querySelector('[name="website"]');
+            const isBot = hpField && hpField.value; // honeypot filled = bot
+            if (!fwdEmail) {
+              console.warn('[MYHBeauty] No forwarding email configured — the message was saved locally only.');
+            } else if (isBot) {
+              console.warn('[MYHBeauty] Honeypot filled — forwarding skipped.');
+            } else {
+              const fullName = ((submission.firstName || '') + ' ' + (submission.lastName || '')).trim() || 'Website Visitor';
+              const res = await fetch('https://formsubmit.co/ajax/' + encodeURIComponent(fwdEmail), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({
+                  name: fullName,
+                  email: submission.email || '',
+                  phone: submission.phone || '',
+                  company: submission.company || '',
+                  subject: (typeof msgSubjectLabel === 'function') ? msgSubjectLabel(submission.subject) : (submission.subject || ''),
+                  message: submission.message || '',
+                  _subject: 'New website message from ' + fullName + ' — MYHBeauty',
+                  _template: 'table',
+                  _captcha: 'false'
+                })
+              });
+              const data = await res.json().catch(() => null);
+              if (!data || String(data.success) !== 'true') {
+                console.warn('[MYHBeauty] Forwarding did not complete:', (data && data.message) ? data.message : ('HTTP ' + res.status), '| to:', fwdEmail);
+              }
+            }
+          } catch (err) {
+            console.warn('[MYHBeauty] Forwarding failed (offline, file:// preview, or blocked). Local copy kept.', err);
+          }
           if (successMsg) {
             successMsg.classList.add('show');
             successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1031,3 +1104,30 @@ styleEl.textContent = `
   }
 `;
 document.head.appendChild(styleEl);
+
+/* ---------- Social Media Icons ----------
+     Fills every ".footer-social" block (site footers + the contact page
+     "Follow Us" area) from the admin-managed Social list. Links open in a
+     new tab; an item without a URL is rendered dimmed as a hint to fill it. */
+  function renderSocialIcons() {
+    const blocks = document.querySelectorAll('.footer-social');
+    if (!blocks.length) return;
+    const links = Social.getAll();
+    if (!links.length) {
+      blocks.forEach(b => { b.innerHTML = ''; });
+      return;
+    }
+    const html = links.map(s => {
+      const label = (typeof SOCIAL_PLATFORMS !== 'undefined' && SOCIAL_PLATFORMS[s.platform])
+        ? SOCIAL_PLATFORMS[s.platform].label
+        : s.platform;
+      const icon = Social.getIcon(s.platform);
+      const hasUrl = /^https?:\/\//i.test(s.url) || /^mailto:/i.test(s.url) || /^tel:/i.test(s.url);
+      const href = hasUrl ? s.url : '#';
+      const target = hasUrl ? ' target="_blank" rel="noopener noreferrer"' : '';
+      const cls = hasUrl ? 'social-link' : 'social-link is-empty';
+      const title = hasUrl ? label : label + ' (link not set — add it in the admin)';
+      return `<a class="${cls}" href="${href}" aria-label="${label}" title="${title}"${target}>${icon}</a>`;
+    }).join('');
+    blocks.forEach(b => { b.innerHTML = html; });
+  }
