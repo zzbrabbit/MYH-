@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Key features — extract from specs (first 3) as highlighted bullets
     const featureItems = validSpecs.slice(0, 3).map(s =>
-      `<li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></span><span><strong>${s.value}</strong> &middot; ${s.label}</span></li>`
+      `<li><span class="feat-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></span><span><strong>${s.label}</strong> &middot; ${s.value}</span></li>`
     ).join('');
     const featuresHtml = featureItems
       ? `<div class="detail-features"><h4>Key Features</h4><ul>${featureItems}</ul></div>`
