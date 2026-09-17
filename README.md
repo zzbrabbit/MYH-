@@ -1,6 +1,6 @@
 # MYHBeauty 网站源码（可上传版）
 
-打包时间：2026-09-16 17:21
+打包时间：2026-09-17 08:37
 
 ## 目录内容
 
@@ -16,7 +16,7 @@
 资源目录：
 
 - `css/`: admin.css、style.css
-- `js/`: admin.js、github-sync.js、main.js、store.js
+- `js/`: admin-i18n.js、admin.js、github-sync.js、main.js、store.js
 
 ## 上传方式
 

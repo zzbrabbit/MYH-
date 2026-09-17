@@ -1590,178 +1590,233 @@ function isDataUrl(str) {
 */
 const PAGE_CONTENT_SCHEMA = {
   'index': {
-    label: 'Home Page',
+    label: 'Home Page 首页',
     groups: [
-      { name: 'Hero Section', items: [
-        { id: 'idx_hero_eyebrow', label: 'Eyebrow', selector: '.hero .eyebrow', type: 'text' },
-        { id: 'idx_hero_title', label: 'Main Title', selector: '.hero h1', type: 'html' },
-        { id: 'idx_hero_subtitle', label: 'Subtitle', selector: '.hero .lead', type: 'text' },
-        { id: 'idx_hero_btn1', label: 'Button 1 Text', selector: '.hero-actions .btn-primary', type: 'text' },
-        { id: 'idx_hero_btn2', label: 'Button 2 Text', selector: '.hero-actions .btn-outline', type: 'text' },
+      { name: 'Hero Section 首屏横幅', items: [
+        { id: 'idx_hero_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.hero .eyebrow', type: 'text' },
+        { id: 'idx_hero_title', label: 'Main Title 主标题', selector: '.hero h1', type: 'html' },
+        { id: 'idx_hero_subtitle', label: 'Subtitle 副标题', selector: '.hero .lead', type: 'text' },
+        { id: 'idx_hero_btn1', label: 'Button 1 Text 主按钮文字', selector: '.hero-actions .btn-primary', type: 'text' },
+        { id: 'idx_hero_btn2', label: 'Button 2 Text 次按钮文字', selector: '.hero-actions .btn-outline', type: 'text' },
       ]},
-      { name: 'Features Section', items: [
-        { id: 'idx_feat_eyebrow', label: 'Section Eyebrow', selector: 'section.section .section-title .eyebrow', index: 0, type: 'text' },
-        { id: 'idx_feat_title', label: 'Section Title', selector: 'section.section .section-title h2', index: 0, type: 'text' },
-        { id: 'idx_feat_lead', label: 'Section Lead', selector: 'section.section .section-title .lead', index: 0, type: 'text' },
-        { id: 'idx_feat_c1_title', label: 'Card 1 Title', selector: '.feature-card h3', index: 0, type: 'text' },
-        { id: 'idx_feat_c1_text', label: 'Card 1 Text', selector: '.feature-card p', index: 0, type: 'text' },
-        { id: 'idx_feat_c2_title', label: 'Card 2 Title', selector: '.feature-card h3', index: 1, type: 'text' },
-        { id: 'idx_feat_c2_text', label: 'Card 2 Text', selector: '.feature-card p', index: 1, type: 'text' },
-        { id: 'idx_feat_c3_title', label: 'Card 3 Title', selector: '.feature-card h3', index: 2, type: 'text' },
-        { id: 'idx_feat_c3_text', label: 'Card 3 Text', selector: '.feature-card p', index: 2, type: 'text' },
-        { id: 'idx_feat_c4_title', label: 'Card 4 Title', selector: '.feature-card h3', index: 3, type: 'text' },
-        { id: 'idx_feat_c4_text', label: 'Card 4 Text', selector: '.feature-card p', index: 3, type: 'text' },
+      { name: 'Features Section 优势区块', items: [
+        { id: 'idx_feat_eyebrow', label: 'Section Eyebrow 区块小标签', selector: 'section.section .section-title .eyebrow', index: 0, type: 'text' },
+        { id: 'idx_feat_title', label: 'Section Title 区块标题', selector: 'section.section .section-title h2', index: 0, type: 'text' },
+        { id: 'idx_feat_lead', label: 'Section Lead 区块引言', selector: 'section.section .section-title .lead', index: 0, type: 'text' },
+        { id: 'idx_feat_c1_title', label: 'Card 1 Title 卡片1标题', selector: '.feature-card h3', index: 0, type: 'text' },
+        { id: 'idx_feat_c1_text', label: 'Card 1 Text 卡片1正文', selector: '.feature-card p', index: 0, type: 'text' },
+        { id: 'idx_feat_c2_title', label: 'Card 2 Title 卡片2标题', selector: '.feature-card h3', index: 1, type: 'text' },
+        { id: 'idx_feat_c2_text', label: 'Card 2 Text 卡片2正文', selector: '.feature-card p', index: 1, type: 'text' },
+        { id: 'idx_feat_c3_title', label: 'Card 3 Title 卡片3标题', selector: '.feature-card h3', index: 2, type: 'text' },
+        { id: 'idx_feat_c3_text', label: 'Card 3 Text 卡片3正文', selector: '.feature-card p', index: 2, type: 'text' },
+        { id: 'idx_feat_c4_title', label: 'Card 4 Title 卡片4标题', selector: '.feature-card h3', index: 3, type: 'text' },
+        { id: 'idx_feat_c4_text', label: 'Card 4 Text 卡片4正文', selector: '.feature-card p', index: 3, type: 'text' },
       ]},
-      { name: 'About Preview', items: [
-        { id: 'idx_about_eyebrow', label: 'Eyebrow', selector: '.split-text .eyebrow', index: 0, type: 'text' },
-        { id: 'idx_about_title', label: 'Title', selector: '.split-text h2', index: 0, type: 'html' },
-        { id: 'idx_about_lead', label: 'Lead Paragraph', selector: '.split-text .lead', index: 0, type: 'text' },
-        { id: 'idx_about_p', label: 'Description', selector: '.split-text p:not(.lead)', index: 0, type: 'text' },
-        { id: 'idx_about_btn', label: 'Button Text', selector: '.split-text .btn', index: 0, type: 'text' },
+      { name: 'About Preview 关于简介', items: [
+        { id: 'idx_about_eyebrow', label: 'Eyebrow 小标签', selector: '.split-text .eyebrow', index: 0, type: 'text' },
+        { id: 'idx_about_title', label: 'Title 标题', selector: '.split-text h2', index: 0, type: 'html' },
+        { id: 'idx_about_lead', label: 'Lead Paragraph 引导段落', selector: '.split-text .lead', index: 0, type: 'text' },
+        { id: 'idx_about_p', label: 'Description 描述文字', selector: '.split-text p:not(.lead)', index: 0, type: 'text' },
+        { id: 'idx_about_btn', label: 'Button Text 按钮文字', selector: '.split-text .btn', index: 0, type: 'text' },
       ]},
-      { name: 'Featured Products', items: [
-        { id: 'idx_prod_eyebrow', label: 'Eyebrow', selector: 'section.section .section-title .eyebrow', index: 1, type: 'text' },
-        { id: 'idx_prod_title', label: 'Title', selector: 'section.section .section-title h2', index: 1, type: 'text' },
-        { id: 'idx_prod_lead', label: 'Lead', selector: 'section.section .section-title .lead', index: 1, type: 'text' },
-        { id: 'idx_prod_btn', label: 'Button Text', selector: '.text-center .btn-primary', index: 0, type: 'text' },
+      { name: 'Featured Products 推荐产品', items: [
+        { id: 'idx_prod_eyebrow', label: 'Eyebrow 小标签', selector: 'section.section .section-title .eyebrow', index: 1, type: 'text' },
+        { id: 'idx_prod_title', label: 'Title 标题', selector: 'section.section .section-title h2', index: 1, type: 'text' },
+        { id: 'idx_prod_lead', label: 'Lead 引言', selector: 'section.section .section-title .lead', index: 1, type: 'text' },
+        { id: 'idx_prod_btn', label: 'Button Text 按钮文字', selector: '.text-center .btn-primary', index: 0, type: 'text' },
       ]},
-      { name: 'Technology Section', items: [
-        { id: 'idx_tech_eyebrow', label: 'Eyebrow', selector: '.split-reverse .eyebrow', type: 'text' },
-        { id: 'idx_tech_title', label: 'Title', selector: '.split-reverse h2', type: 'html' },
-        { id: 'idx_tech_lead', label: 'Lead Paragraph', selector: '.split-reverse .lead', type: 'text' },
-        { id: 'idx_tech_btn', label: 'Button Text', selector: '.split-reverse .btn', type: 'text' },
+      { name: 'Technology Section 技术区块', items: [
+        { id: 'idx_tech_eyebrow', label: 'Eyebrow 小标签', selector: '.split-reverse .eyebrow', type: 'text' },
+        { id: 'idx_tech_title', label: 'Title 标题', selector: '.split-reverse h2', type: 'html' },
+        { id: 'idx_tech_lead', label: 'Lead Paragraph 引导段落', selector: '.split-reverse .lead', type: 'text' },
+        { id: 'idx_tech_btn', label: 'Button Text 按钮文字', selector: '.split-reverse .btn', type: 'text' },
       ]},
-      { name: 'Testimonials Section', items: [
-        { id: 'idx_test_eyebrow', label: 'Eyebrow', selector: 'section.section .section-title .eyebrow', index: 2, type: 'text' },
-        { id: 'idx_test_title', label: 'Title', selector: 'section.section .section-title h2', index: 2, type: 'text' },
-        { id: 'idx_test_lead', label: 'Lead', selector: 'section.section .section-title .lead', index: 2, type: 'text' },
+      { name: 'Testimonials Section 客户评价', items: [
+        { id: 'idx_test_eyebrow', label: 'Eyebrow 小标签', selector: 'section.section .section-title .eyebrow', index: 2, type: 'text' },
+        { id: 'idx_test_title', label: 'Title 标题', selector: 'section.section .section-title h2', index: 2, type: 'text' },
+        { id: 'idx_test_lead', label: 'Lead 引言', selector: 'section.section .section-title .lead', index: 2, type: 'text' },
       ]},
-      { name: 'Blog Preview Section', items: [
-        { id: 'idx_blog_eyebrow', label: 'Eyebrow', selector: 'section.section .section-title .eyebrow', index: 3, type: 'text' },
-        { id: 'idx_blog_title', label: 'Title', selector: 'section.section .section-title h2', index: 3, type: 'text' },
-        { id: 'idx_blog_lead', label: 'Lead', selector: 'section.section .section-title .lead', index: 3, type: 'text' },
-        { id: 'idx_blog_btn', label: 'Button Text', selector: '.text-center .btn-outline', index: 0, type: 'text' },
+      { name: 'Blog Preview Section 博客预览', items: [
+        { id: 'idx_blog_eyebrow', label: 'Eyebrow 小标签', selector: 'section.section .section-title .eyebrow', index: 3, type: 'text' },
+        { id: 'idx_blog_title', label: 'Title 标题', selector: 'section.section .section-title h2', index: 3, type: 'text' },
+        { id: 'idx_blog_lead', label: 'Lead 引言', selector: 'section.section .section-title .lead', index: 3, type: 'text' },
+        { id: 'idx_blog_btn', label: 'Button Text 按钮文字', selector: '.text-center .btn-outline', index: 0, type: 'text' },
       ]},
-      { name: 'CTA Banner', items: [
-        { id: 'idx_cta_eyebrow', label: 'Eyebrow', selector: '.cta-banner .eyebrow', type: 'text' },
-        { id: 'idx_cta_title', label: 'Title', selector: '.cta-banner h2', type: 'html' },
-        { id: 'idx_cta_lead', label: 'Lead', selector: '.cta-banner .lead', type: 'text' },
-        { id: 'idx_cta_btn', label: 'Button Text', selector: '.cta-banner .btn', type: 'text' },
+      { name: 'CTA Banner 行动号召横幅', items: [
+        { id: 'idx_cta_eyebrow', label: 'Eyebrow 小标签', selector: '.cta-banner .eyebrow', type: 'text' },
+        { id: 'idx_cta_title', label: 'Title 标题', selector: '.cta-banner h2', type: 'html' },
+        { id: 'idx_cta_lead', label: 'Lead 引言', selector: '.cta-banner .lead', type: 'text' },
+        { id: 'idx_cta_btn', label: 'Button Text 按钮文字', selector: '.cta-banner .btn', type: 'text' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'idx_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
-        { id: 'idx_footer_news', label: 'Newsletter Text', selector: '.footer-col p', index: 0, type: 'text' },
+      { name: 'Footer 页脚', items: [
+        { id: 'idx_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
+        { id: 'idx_footer_news', label: 'Newsletter Text 订阅说明', selector: '.footer-col p', index: 0, type: 'text' },
       ]},
     ]
   },
 
   'about': {
-    label: 'About Page',
+    label: 'About Page 关于我们',
     groups: [
-      { name: 'Page Header', items: [
-        { id: 'about_hdr_eyebrow', label: 'Eyebrow', selector: '.page-header .eyebrow', type: 'text' },
-        { id: 'about_hdr_title', label: 'Title', selector: '.page-header h1', type: 'html' },
-        { id: 'about_hdr_lead', label: 'Subtitle', selector: '.page-header .lead', type: 'text' },
+      { name: 'Page Header 页面头部', items: [
+        { id: 'about_hdr_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.page-header .eyebrow', type: 'text' },
+        { id: 'about_hdr_title', label: 'Title 主标题', selector: '.page-header h1', type: 'html' },
+        { id: 'about_hdr_lead', label: 'Subtitle 副标题', selector: '.page-header .lead', type: 'text' },
       ]},
-      { name: 'Story Section', items: [
-        { id: 'about_story_eyebrow', label: 'Eyebrow', selector: '.split-text .eyebrow', index: 0, type: 'text' },
-        { id: 'about_story_title', label: 'Title', selector: '.split-text h2', index: 0, type: 'html' },
-        { id: 'about_story_lead', label: 'Lead Paragraph', selector: '.split-text .lead', index: 0, type: 'text' },
-        { id: 'about_story_p1', label: 'Paragraph 1', selector: '.split-text p:not(.lead)', index: 0, type: 'text' },
-        { id: 'about_story_p2', label: 'Paragraph 2', selector: '.split-text p:not(.lead)', index: 1, type: 'text' },
-        { id: 'about_story_btn', label: 'Button Text', selector: '.split-text .btn', index: 0, type: 'text' },
+      { name: 'Story Section 品牌故事', items: [
+        { id: 'about_story_eyebrow', label: 'Eyebrow 小标签', selector: '.split-text .eyebrow', index: 0, type: 'text' },
+        { id: 'about_story_title', label: 'Title 标题', selector: '.split-text h2', index: 0, type: 'html' },
+        { id: 'about_story_lead', label: 'Lead Paragraph 引导段落', selector: '.split-text .lead', index: 0, type: 'text' },
+        { id: 'about_story_p1', label: 'Paragraph 1 第一段', selector: '.split-text p:not(.lead)', index: 0, type: 'text' },
+        { id: 'about_story_p2', label: 'Paragraph 2 第二段', selector: '.split-text p:not(.lead)', index: 1, type: 'text' },
+        { id: 'about_story_btn', label: 'Button Text 按钮文字', selector: '.split-text .btn', index: 0, type: 'text' },
       ]},
-      { name: 'Mission & Vision', items: [
-        { id: 'about_mv_eyebrow', label: 'Eyebrow', selector: '.split-reverse .eyebrow', type: 'text' },
-        { id: 'about_mv_title', label: 'Title', selector: '.split-reverse h2', type: 'html' },
-        { id: 'about_mv_mission', label: 'Mission Text', selector: '.split-reverse p', index: 0, type: 'text' },
-        { id: 'about_mv_vision', label: 'Vision Text', selector: '.split-reverse p', index: 1, type: 'text' },
-        { id: 'about_mv_btn', label: 'Button Text', selector: '.split-reverse .btn', type: 'text' },
+      { name: 'Mission & Vision 使命与愿景', items: [
+        { id: 'about_mv_eyebrow', label: 'Eyebrow 小标签', selector: '.split-reverse .eyebrow', type: 'text' },
+        { id: 'about_mv_title', label: 'Title 标题', selector: '.split-reverse h2', type: 'html' },
+        { id: 'about_mv_mission', label: 'Mission Text 使命文字', selector: '.split-reverse p', index: 0, type: 'text' },
+        { id: 'about_mv_vision', label: 'Vision Text 愿景文字', selector: '.split-reverse p', index: 1, type: 'text' },
+        { id: 'about_mv_btn', label: 'Button Text 按钮文字', selector: '.split-reverse .btn', type: 'text' },
       ]},
-      { name: 'Timeline Section', items: [
-        { id: 'about_tl_eyebrow', label: 'Eyebrow', selector: '.section-title .eyebrow', index: 0, type: 'text' },
-        { id: 'about_tl_title', label: 'Title', selector: '.section-title h2', index: 0, type: 'text' },
-        { id: 'about_tl_lead', label: 'Lead', selector: '.section-title .lead', index: 0, type: 'text' },
+      { name: 'Timeline Section 发展历程', items: [
+        { id: 'about_tl_eyebrow', label: 'Eyebrow 小标签', selector: '.section-title .eyebrow', index: 0, type: 'text' },
+        { id: 'about_tl_title', label: 'Title 标题', selector: '.section-title h2', index: 0, type: 'text' },
+        { id: 'about_tl_lead', label: 'Lead 引言', selector: '.section-title .lead', index: 0, type: 'text' },
       ]},
-      { name: 'Core Values', items: [
-        { id: 'about_val_eyebrow', label: 'Eyebrow', selector: '.section-title .eyebrow', index: 1, type: 'text' },
-        { id: 'about_val_title', label: 'Title', selector: '.section-title h2', index: 1, type: 'text' },
-        { id: 'about_val_lead', label: 'Lead', selector: '.section-title .lead', index: 1, type: 'text' },
-        { id: 'about_val1_title', label: 'Value 1 Title', selector: '.value-item h3', index: 0, type: 'text' },
-        { id: 'about_val1_text', label: 'Value 1 Text', selector: '.value-item p', index: 0, type: 'text' },
-        { id: 'about_val2_title', label: 'Value 2 Title', selector: '.value-item h3', index: 1, type: 'text' },
-        { id: 'about_val2_text', label: 'Value 2 Text', selector: '.value-item p', index: 1, type: 'text' },
-        { id: 'about_val3_title', label: 'Value 3 Title', selector: '.value-item h3', index: 2, type: 'text' },
-        { id: 'about_val3_text', label: 'Value 3 Text', selector: '.value-item p', index: 2, type: 'text' },
-        { id: 'about_val4_title', label: 'Value 4 Title', selector: '.value-item h3', index: 3, type: 'text' },
-        { id: 'about_val4_text', label: 'Value 4 Text', selector: '.value-item p', index: 3, type: 'text' },
+      { name: 'Timeline Milestones 里程碑条目', items: [
+        { id: 'about_tl1_year', label: 'Item 1 Year 第1条年份', selector: '.timeline-item .timeline-year', index: 0, type: 'text' },
+        { id: 'about_tl1_title', label: 'Item 1 Title 第1条标题', selector: '.timeline-item h3', index: 0, type: 'text' },
+        { id: 'about_tl1_text', label: 'Item 1 Text 第1条正文', selector: '.timeline-item p', index: 0, type: 'text' },
+        { id: 'about_tl2_year', label: 'Item 2 Year 第2条年份', selector: '.timeline-item .timeline-year', index: 1, type: 'text' },
+        { id: 'about_tl2_title', label: 'Item 2 Title 第2条标题', selector: '.timeline-item h3', index: 1, type: 'text' },
+        { id: 'about_tl2_text', label: 'Item 2 Text 第2条正文', selector: '.timeline-item p', index: 1, type: 'text' },
+        { id: 'about_tl3_year', label: 'Item 3 Year 第3条年份', selector: '.timeline-item .timeline-year', index: 2, type: 'text' },
+        { id: 'about_tl3_title', label: 'Item 3 Title 第3条标题', selector: '.timeline-item h3', index: 2, type: 'text' },
+        { id: 'about_tl3_text', label: 'Item 3 Text 第3条正文', selector: '.timeline-item p', index: 2, type: 'text' },
+        { id: 'about_tl4_year', label: 'Item 4 Year 第4条年份', selector: '.timeline-item .timeline-year', index: 3, type: 'text' },
+        { id: 'about_tl4_title', label: 'Item 4 Title 第4条标题', selector: '.timeline-item h3', index: 3, type: 'text' },
+        { id: 'about_tl4_text', label: 'Item 4 Text 第4条正文', selector: '.timeline-item p', index: 3, type: 'text' },
+        { id: 'about_tl5_year', label: 'Item 5 Year 第5条年份', selector: '.timeline-item .timeline-year', index: 4, type: 'text' },
+        { id: 'about_tl5_title', label: 'Item 5 Title 第5条标题', selector: '.timeline-item h3', index: 4, type: 'text' },
+        { id: 'about_tl5_text', label: 'Item 5 Text 第5条正文', selector: '.timeline-item p', index: 4, type: 'text' },
+        { id: 'about_tl6_year', label: 'Item 6 Year 第6条年份', selector: '.timeline-item .timeline-year', index: 5, type: 'text' },
+        { id: 'about_tl6_title', label: 'Item 6 Title 第6条标题', selector: '.timeline-item h3', index: 5, type: 'text' },
+        { id: 'about_tl6_text', label: 'Item 6 Text 第6条正文', selector: '.timeline-item p', index: 5, type: 'text' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'about_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
+      { name: 'Core Values 核心价值观', items: [
+        { id: 'about_val_eyebrow', label: 'Eyebrow 小标签', selector: '.section-title .eyebrow', index: 1, type: 'text' },
+        { id: 'about_val_title', label: 'Title 标题', selector: '.section-title h2', index: 1, type: 'text' },
+        { id: 'about_val_lead', label: 'Lead 引言', selector: '.section-title .lead', index: 1, type: 'text' },
+        { id: 'about_val1_title', label: 'Value 1 Title 价值1标题', selector: '.value-item h3', index: 0, type: 'text' },
+        { id: 'about_val1_text', label: 'Value 1 Text 价值1正文', selector: '.value-item p', index: 0, type: 'text' },
+        { id: 'about_val2_title', label: 'Value 2 Title 价值2标题', selector: '.value-item h3', index: 1, type: 'text' },
+        { id: 'about_val2_text', label: 'Value 2 Text 价值2正文', selector: '.value-item p', index: 1, type: 'text' },
+        { id: 'about_val3_title', label: 'Value 3 Title 价值3标题', selector: '.value-item h3', index: 2, type: 'text' },
+        { id: 'about_val3_text', label: 'Value 3 Text 价值3正文', selector: '.value-item p', index: 2, type: 'text' },
+        { id: 'about_val4_title', label: 'Value 4 Title 价值4标题', selector: '.value-item h3', index: 3, type: 'text' },
+        { id: 'about_val4_text', label: 'Value 4 Text 价值4正文', selector: '.value-item p', index: 3, type: 'text' },
+      ]},
+      { name: 'Stats Section 数据统计', items: [
+        { id: 'about_stat1_num', label: 'Stat 1 Number 第1个数字', selector: '.stat-item .num span', index: 0, type: 'attr', attr: 'data-count' },
+        { id: 'about_stat1_label', label: 'Stat 1 Label 第1个说明', selector: '.stat-item .label', index: 0, type: 'text' },
+        { id: 'about_stat2_num', label: 'Stat 2 Number 第2个数字', selector: '.stat-item .num span', index: 1, type: 'attr', attr: 'data-count' },
+        { id: 'about_stat2_label', label: 'Stat 2 Label 第2个说明', selector: '.stat-item .label', index: 1, type: 'text' },
+        { id: 'about_stat3_num', label: 'Stat 3 Number 第3个数字', selector: '.stat-item .num span', index: 2, type: 'attr', attr: 'data-count' },
+        { id: 'about_stat3_label', label: 'Stat 3 Label 第3个说明', selector: '.stat-item .label', index: 2, type: 'text' },
+        { id: 'about_stat4_num', label: 'Stat 4 Number 第4个数字', selector: '.stat-item .num span', index: 3, type: 'attr', attr: 'data-count' },
+        { id: 'about_stat4_label', label: 'Stat 4 Label 第4个说明', selector: '.stat-item .label', index: 3, type: 'text' },
+      ]},
+      { name: 'Leadership Section 团队介绍', items: [
+        { id: 'about_team_eyebrow', label: 'Eyebrow 小标签', selector: '.section-title .eyebrow', index: 2, type: 'text' },
+        { id: 'about_team_title', label: 'Title 标题', selector: '.section-title h2', index: 2, type: 'text' },
+        { id: 'about_team_lead', label: 'Lead 引言', selector: '.section-title .lead', index: 2, type: 'text' },
+      ]},
+      { name: 'Team Members 团队成员', items: [
+        { id: 'about_team1_init', label: 'Member 1 Avatar Letter 成员1头像字母', selector: '.team-card .team-avatar', index: 0, type: 'text' },
+        { id: 'about_team1_name', label: 'Member 1 Name 成员1姓名', selector: '.team-card h3', index: 0, type: 'text' },
+        { id: 'about_team1_role', label: 'Member 1 Role 成员1职位', selector: '.team-card .team-role', index: 0, type: 'text' },
+        { id: 'about_team2_init', label: 'Member 2 Avatar Letter 成员2头像字母', selector: '.team-card .team-avatar', index: 1, type: 'text' },
+        { id: 'about_team2_name', label: 'Member 2 Name 成员2姓名', selector: '.team-card h3', index: 1, type: 'text' },
+        { id: 'about_team2_role', label: 'Member 2 Role 成员2职位', selector: '.team-card .team-role', index: 1, type: 'text' },
+        { id: 'about_team3_init', label: 'Member 3 Avatar Letter 成员3头像字母', selector: '.team-card .team-avatar', index: 2, type: 'text' },
+        { id: 'about_team3_name', label: 'Member 3 Name 成员3姓名', selector: '.team-card h3', index: 2, type: 'text' },
+        { id: 'about_team3_role', label: 'Member 3 Role 成员3职位', selector: '.team-card .team-role', index: 2, type: 'text' },
+        { id: 'about_team4_init', label: 'Member 4 Avatar Letter 成员4头像字母', selector: '.team-card .team-avatar', index: 3, type: 'text' },
+        { id: 'about_team4_name', label: 'Member 4 Name 成员4姓名', selector: '.team-card h3', index: 3, type: 'text' },
+        { id: 'about_team4_role', label: 'Member 4 Role 成员4职位', selector: '.team-card .team-role', index: 3, type: 'text' },
+      ]},
+      { name: 'CTA Banner 行动号召横幅', items: [
+        { id: 'about_cta_eyebrow', label: 'Eyebrow 小标签', selector: '.cta-banner .eyebrow', type: 'text' },
+        { id: 'about_cta_title', label: 'Title 标题', selector: '.cta-banner h2', type: 'html' },
+        { id: 'about_cta_lead', label: 'Lead 引言', selector: '.cta-banner .lead', type: 'text' },
+        { id: 'about_cta_btn', label: 'Button Text 按钮文字', selector: '.cta-banner .btn', type: 'text' },
+      ]},
+      { name: 'Footer 页脚', items: [
+        { id: 'about_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
       ]},
     ]
   },
 
   'contact': {
-    label: 'Contact Page',
+    label: 'Contact Page 联系我们',
     groups: [
-      { name: 'Page Header', items: [
-        { id: 'contact_hdr_eyebrow', label: 'Eyebrow', selector: '.page-header .eyebrow', type: 'text' },
-        { id: 'contact_hdr_title', label: 'Title', selector: '.page-header h1', type: 'html' },
-        { id: 'contact_hdr_lead', label: 'Subtitle', selector: '.page-header .lead', type: 'text' },
+      { name: 'Page Header 页面头部', items: [
+        { id: 'contact_hdr_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.page-header .eyebrow', type: 'text' },
+        { id: 'contact_hdr_title', label: 'Title 主标题', selector: '.page-header h1', type: 'html' },
+        { id: 'contact_hdr_lead', label: 'Subtitle 副标题', selector: '.page-header .lead', type: 'text' },
       ]},
-      { name: 'Contact Info Section', items: [
-        { id: 'contact_info_eyebrow', label: 'Eyebrow', selector: '.contact-grid .eyebrow', type: 'text' },
-        { id: 'contact_info_title', label: 'Title', selector: '.contact-grid h2', type: 'html' },
-        { id: 'contact_info_desc', label: 'Description', selector: '.contact-grid > div > p', type: 'text' },
-        { id: 'contact_addr', label: 'Address', selector: '.contact-info-item p', index: 0, type: 'html' },
-        { id: 'contact_phone', label: 'Phone', selector: '.contact-info-item p', index: 1, type: 'html' },
-        { id: 'contact_email', label: 'Email', selector: '.contact-info-item p', index: 2, type: 'html' },
+      { name: 'Contact Info Section 联系信息', items: [
+        { id: 'contact_info_eyebrow', label: 'Eyebrow 小标签', selector: '.contact-grid .eyebrow', type: 'text' },
+        { id: 'contact_info_title', label: 'Title 标题', selector: '.contact-grid h2', type: 'html' },
+        { id: 'contact_info_desc', label: 'Description 描述文字', selector: '.contact-grid > div > p', type: 'text' },
+        { id: 'contact_addr', label: 'Address 地址', selector: '.contact-info-item p', index: 0, type: 'html' },
+        { id: 'contact_phone', label: 'Phone 电话', selector: '.contact-info-item p', index: 1, type: 'html' },
+        { id: 'contact_email', label: 'Email 邮箱', selector: '.contact-info-item p', index: 2, type: 'html' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'contact_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
+      { name: 'Footer 页脚', items: [
+        { id: 'contact_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
       ]},
     ]
   },
 
   'products': {
-    label: 'Products Page',
+    label: 'Products Page 产品页',
     groups: [
-      { name: 'Page Header', items: [
-        { id: 'prod_hdr_eyebrow', label: 'Eyebrow', selector: '.page-header .eyebrow', type: 'text' },
-        { id: 'prod_hdr_title', label: 'Title', selector: '.page-header h1', type: 'html' },
-        { id: 'prod_hdr_lead', label: 'Subtitle', selector: '.page-header .lead', type: 'text' },
+      { name: 'Page Header 页面头部', items: [
+        { id: 'prod_hdr_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.page-header .eyebrow', type: 'text' },
+        { id: 'prod_hdr_title', label: 'Title 主标题', selector: '.page-header h1', type: 'html' },
+        { id: 'prod_hdr_lead', label: 'Subtitle 副标题', selector: '.page-header .lead', type: 'text' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'prod_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
+      { name: 'Footer 页脚', items: [
+        { id: 'prod_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
       ]},
     ]
   },
 
   'blog': {
-    label: 'Blog Page',
+    label: 'Blog Page 博客页',
     groups: [
-      { name: 'Page Header', items: [
-        { id: 'blog_hdr_eyebrow', label: 'Eyebrow', selector: '.page-header .eyebrow', type: 'text' },
-        { id: 'blog_hdr_title', label: 'Title', selector: '.page-header h1', type: 'html' },
-        { id: 'blog_hdr_lead', label: 'Subtitle', selector: '.page-header .lead', type: 'text' },
+      { name: 'Page Header 页面头部', items: [
+        { id: 'blog_hdr_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.page-header .eyebrow', type: 'text' },
+        { id: 'blog_hdr_title', label: 'Title 主标题', selector: '.page-header h1', type: 'html' },
+        { id: 'blog_hdr_lead', label: 'Subtitle 副标题', selector: '.page-header .lead', type: 'text' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'blog_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
+      { name: 'Footer 页脚', items: [
+        { id: 'blog_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
       ]},
     ]
   },
 
   'treatments': {
-    label: 'Treatments Page',
+    label: 'Treatments Page 疗程页',
     groups: [
-      { name: 'Page Header', items: [
-        { id: 'treat_hdr_eyebrow', label: 'Eyebrow', selector: '.page-header .eyebrow', type: 'text' },
-        { id: 'treat_hdr_title', label: 'Title', selector: '.page-header h1', type: 'html' },
-        { id: 'treat_hdr_lead', label: 'Subtitle', selector: '.page-header .lead', type: 'text' },
+      { name: 'Page Header 页面头部', items: [
+        { id: 'treat_hdr_eyebrow', label: 'Eyebrow 顶部小标签', selector: '.page-header .eyebrow', type: 'text' },
+        { id: 'treat_hdr_title', label: 'Title 主标题', selector: '.page-header h1', type: 'html' },
+        { id: 'treat_hdr_lead', label: 'Subtitle 副标题', selector: '.page-header .lead', type: 'text' },
       ]},
-      { name: 'Footer', items: [
-        { id: 'treat_footer_desc', label: 'Brand Description', selector: '.footer-brand p', type: 'text' },
+      { name: 'Footer 页脚', items: [
+        { id: 'treat_footer_desc', label: 'Brand Description 品牌简介', selector: '.footer-brand p', type: 'text' },
       ]},
     ]
   }
@@ -1866,6 +1921,7 @@ const Content = {
     const el = this.findElement(item);
     if (!el) return '';
     if (item.type === 'image') return el.src || el.getAttribute('src') || '';
+    if (item.type === 'attr') return el.getAttribute(item.attr) || '';
     if (item.type === 'html') return el.innerHTML.trim();
     return el.textContent.trim();
   },
@@ -1886,6 +1942,8 @@ const Content = {
         if (!el) return;
         if (item.type === 'image') {
           el.src = saved;
+        } else if (item.type === 'attr') {
+          el.setAttribute(item.attr, saved);
         } else if (item.type === 'html') {
           el.innerHTML = saved;
         } else {

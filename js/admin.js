@@ -951,7 +951,9 @@ async function renderContentEditor(page, container) {
       const savedValue = overrides[item.id];
       const hasOverride = savedValue !== undefined;
       const fieldType = item.type === 'html' ? 'html' : item.type === 'image' ? 'image' : 'text';
-      const typeLabel = item.type === 'html' ? 'HTML' : item.type === 'image' ? 'Image' : 'Text';
+      const typeLabel = item.type === 'html' ? 'HTML' : item.type === 'image' ? 'Image 图片'
+        : item.type === 'attr' ? 'Number 数字' : 'Text 文字';
+      const placeholder = item.type === 'attr' ? 'Enter a number...' : 'Enter text...';
 
       html += '<div class="content-field">';
       html += '<label>' + escapeHtml(item.label) + ' <span class="field-type">' + typeLabel + '</span>';
@@ -973,9 +975,9 @@ async function renderContentEditor(page, container) {
         // For text, check if the saved value is long
         const val = savedValue || '';
         if (val.length > 80) {
-          html += '<textarea class="content-input" data-cms-id="' + item.id + '" placeholder="Enter text...">' + escapeHtml(val) + '</textarea>';
+          html += '<textarea class="content-input" data-cms-id="' + item.id + '" placeholder="' + placeholder + '">' + escapeHtml(val) + '</textarea>';
         } else {
-          html += '<input type="text" class="content-input" data-cms-id="' + item.id + '" placeholder="Enter text..." value="' + escapeAttr(val) + '">';
+          html += '<input type="' + (item.type === 'attr' ? 'number' : 'text') + '" class="content-input" data-cms-id="' + item.id + '" placeholder="' + placeholder + '" value="' + escapeAttr(val) + '">';
         }
       }
       html += '</div>';
