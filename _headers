@@ -1,0 +1,22 @@
+# Cloudflare Pages cache rules
+#
+# 为什么需要这个文件：
+# data.js 存放的是后台发布的产品/文章数据。Cloudflare Pages 默认给它
+# 4 小时强缓存（max-age=14400），浏览器在这段时间内不会重新下载，
+# 于是后台 Push 了新内容，访客却一直看到旧数据（要等 4 小时或手动清缓存）。
+# 这里改成 max-age=0 + must-revalidate：每次都会用 ETag 校验，
+# 内容没变时服务器返回 304（极小），内容变了立刻拿新的。
+
+/data.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# 站点脚本同理：改了代码要能立刻生效
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# HTML 页面本身 Pages 已按动态处理，这里只显式兜底
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
