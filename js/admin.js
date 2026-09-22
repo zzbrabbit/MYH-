@@ -29,7 +29,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   initGalleryManager();
   initSpecsEditor();
   initEventListeners();
+  checkPublishedHealth();   // 异步体检线上 data.js，不阻塞界面
 });
+
+/* ---------- 线上内容体检 ----------
+   如果仓库里的 data.js 是占位文件（null），新访客/其他设备打开站点
+   只会看到初始示例内容，而本机因为 IndexedDB 有缓存看起来一切正常。
+   这里主动体检并给出醒目提示，避免"换台电脑才发现内容没了"。          */
+async function checkPublishedHealth() {
+  try {
+    const res = await fetch('data.js?_t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const txt = await res.text();
+    const isPlaceholder = txt.length < 500 || /MYH_PUBLISHED_DATA\s*=\s*null/.test(txt);
+    if (isPlaceholder) showPublishWarning();
+  } catch (e) { /* 以 file:// 打开或离线时忽略 */ }
+}
+
+function showPublishWarning() {
+  if (document.getElementById('myhPublishWarn')) return;
+  const bar = document.createElement('div');
+  bar.id = 'myhPublishWarn';
+  bar.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:9999;'
+    + 'background:#b42318;color:#fff;padding:10px 16px;font-size:13px;line-height:1.6;'
+    + 'display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;';
+  bar.innerHTML = '<strong>线上内容未发布</strong>'
+    + '<span>仓库里的 data.js 是占位文件，其他电脑/新访客看到的是初始示例内容。</span>'
+    + '<button type="button" id="myhPublishWarnBtn" style="background:#fff;color:#b42318;'
+    + 'border:0;border-radius:6px;padding:5px 12px;font-weight:600;cursor:pointer;">'
+    + '立即 Push 到 GitHub</button>'
+    + '<button type="button" id="myhPublishWarnClose" style="background:transparent;color:#fff;'
+    + 'border:1px solid rgba(255,255,255,.6);border-radius:6px;padding:4px 10px;cursor:pointer;">'
+    + '知道了</button>';
+  document.body.appendChild(bar);
+  document.body.style.paddingTop = '46px';
+  const btn = document.getElementById('myhPublishWarnBtn');
+  if (btn) btn.addEventListener('click', () => {
+    if (typeof openGithubModal === 'function') openGithubModal();
+  });
+  const close = document.getElementById('myhPublishWarnClose');
+  if (close) close.addEventListener('click', () => {
+    bar.remove();
+    document.body.style.paddingTop = '';
+  });
+}
 
 /* ---------- Render Stats ---------- */
 function renderStats() {
@@ -720,6 +763,8 @@ function initEventListeners() {
   if (ghSiteBtn) ghSiteBtn.addEventListener('click', pushWholeSiteToGithub);
   const ghFilesBtn = $('#btnGithubPushFiles');
   if (ghFilesBtn) ghFilesBtn.addEventListener('click', pushAsFilesToGithub);
+  const clearTokenBtn = $('#btnClearToken');
+  if (clearTokenBtn) clearTokenBtn.addEventListener('click', clearGithubToken);
 
   // Confirm action (delete / reset)
   $('#btnConfirmAction').addEventListener('click', () => {
@@ -2351,6 +2396,44 @@ function confirmClearMessages() {
    REST API directly from the browser.
    ========================================================== */
 
+/* Drop the saved invalid token so a fresh one can be pasted. */
+function updateTokenHint() {
+  const box = $('#ghTokenCurrent');
+  const fp = $('#ghTokenFingerprint');
+  if (!box || !fp) return;
+  let saved = '';
+  try { saved = (GHSync.loadConfig().token || ''); } catch (e) { saved = ''; }
+  if (!saved) { box.hidden = true; fp.textContent = ''; return; }
+  const head = saved.slice(0, 8);
+  const tail = saved.length > 12 ? saved.slice(-4) : '';
+  fp.textContent = `Saved token: ${head}...${tail} (${saved.length} chars)`;
+  box.hidden = false;
+}
+
+/* Render a GitHub error message; 401 gets an actionable next step appended. */
+function githubErrorHtml(msg) {
+  const m = String(msg || '');
+  if (/401|Bad credentials/i.test(m)) {
+    return escapeAttr(m)
+      + '<br><strong>这个 token 已失效（过期或被吊销）。</strong>'
+      + '请点输入框下方的 <em>Replace token 更换凭证</em> 清空它，'
+      + '再去 GitHub → Settings → Developer settings → Tokens (classic) → Generate new token，'
+      + '勾选 <code>repo</code>，把新 token 整段粘贴回来。';
+  }
+  return escapeAttr(m);
+}
+
+/* Drop the saved invalid token so a fresh one can be pasted. */
+function clearGithubToken() {
+  try {
+    GHSync.saveConfig({ token: '' });
+  } catch (e) { /* ignore */ }
+  const input = $('#ghToken');
+  if (input) { input.value = ''; input.focus(); }
+  updateTokenHint();
+  setGithubStatus('Saved token cleared. Paste a fresh GitHub token below, then push again.', '');
+}
+
 function openGithubModal() {
   if (typeof GHSync === 'undefined') {
     showToast('GitHub sync module failed to load', 'error');
@@ -2364,6 +2447,7 @@ function openGithubModal() {
   $('#ghToken').value = cfg.token || '';
   $('#ghAlsoImages').checked = !!cfg.alsoImages;
   $('#ghFileBased').checked = !!cfg.fileBased;
+  updateTokenHint();
 
   const last = GHSync.loadLast();
   if (last && last.url) {
@@ -2453,7 +2537,7 @@ async function testGithubConnection() {
       showToast('GitHub connection OK', 'success');
     }
   } catch (e) {
-    setGithubStatus(escapeAttr(e.message), 'err');
+    setGithubStatus(githubErrorHtml(e.message), 'err');
     showToast('Connection failed: ' + e.message, 'error');
   }
 }
@@ -2487,7 +2571,7 @@ async function pushToGithub() {
     setGithubStatus(msg, 'ok');
     showToast('Pushed to GitHub — ' + res.files.length + ' file(s) committed', 'success');
   } catch (e) {
-    setGithubStatus(escapeAttr(e.message), 'err');
+    setGithubStatus(githubErrorHtml(e.message), 'err');
     showToast('GitHub push failed: ' + e.message, 'error');
   } finally {
     pushBtn.disabled = false;
@@ -2529,7 +2613,7 @@ async function pushAsFilesToGithub() {
     setGithubStatus(msg, 'ok');
     showToast('Pushed as files — ' + res.files.length + ' file(s) committed', 'success');
   } catch (e) {
-    setGithubStatus(escapeAttr(e.message), 'err');
+    setGithubStatus(githubErrorHtml(e.message), 'err');
     showToast('GitHub file push failed: ' + e.message, 'error');
   } finally {
     pushBtn.disabled = false;
@@ -2562,7 +2646,7 @@ async function pushWholeSiteToGithub() {
     setGithubStatus(msg, 'ok');
     showToast('Whole site pushed — ' + res.files.length + ' files committed', 'success');
   } catch (e) {
-    setGithubStatus(escapeAttr(e.message), 'err');
+    setGithubStatus(githubErrorHtml(e.message), 'err');
     showToast('Push failed: ' + e.message, 'error');
   } finally {
     [pushBtn, pushPrimary, testBtn].forEach(function (b) { if (b) b.disabled = false; });
