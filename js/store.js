@@ -862,19 +862,28 @@ const Store = {
     return true;
   },
 
-  /* Estimate storage usage — returns { used, quota, percent, usedKB, quotaKB, source } */
+  /* Estimate storage usage — returns { used, quota, percent, usedKB, quotaKB, source, fallbackReason } */
   async getStorageInfo() {
     const used = await DBStorage.estimateSize();
-    // IndexedDB quota is device-dependent; report a conservative 50MB estimate
-    const quota = 50 * 1024 * 1024;
+    let quota = 50 * 1024 * 1024;   // conservative estimate if the browser won't tell us
+    let quotaReal = false;
+    try {
+      if (!DBStorage.fallbackToLocalStorage && navigator.storage && navigator.storage.estimate) {
+        const est = await navigator.storage.estimate();
+        if (est && est.quota && est.quota > 0) { quota = est.quota; quotaReal = true; }
+      }
+    } catch (e) { /* keep conservative estimate */ }
+    if (DBStorage.fallbackToLocalStorage) quota = 5 * 1024 * 1024; // localStorage real limit
     const source = DBStorage.fallbackToLocalStorage ? 'localStorage (fallback)' : 'IndexedDB';
     return {
       used: used,
       quota: quota,
+      quotaReal: quotaReal,
       percent: Math.min(100, Math.round(used / quota * 100)),
       usedKB: Math.round(used / 1024),
       quotaKB: Math.round(quota / 1024),
-      source: source
+      source: source,
+      fallbackReason: DBStorage.fallbackReason || ''
     };
   },
 
@@ -1396,16 +1405,20 @@ const DBStorage = {
   version: 1,
   db: null,
   fallbackToLocalStorage: false,
+  fallbackReason: '',
 
   /* Initialize IndexedDB; returns true on success */
-  async init() {
-    if (this.db) return true;
+  async init(force) {
+    if (this.db && !force) return true;
     if (!window.indexedDB) {
       this.fallbackToLocalStorage = true;
+      this.fallbackReason = 'browser does not support IndexedDB';
       return false;
     }
     try {
       return await new Promise((resolve) => {
+        let settled = false;
+        const settle = (ok) => { if (!settled) { settled = true; resolve(ok); } };
         const request = indexedDB.open(this.dbName, this.version);
         request.onupgradeneeded = (e) => {
           const db = e.target.result;
@@ -1415,21 +1428,42 @@ const DBStorage = {
         };
         request.onsuccess = (e) => {
           this.db = e.target.result;
-          resolve(true);
+          // If another tab upgrades the DB later, close gracefully instead of erroring
+          this.db.onversionchange = () => {
+            try { this.db.close(); } catch (err) { /* ignore */ }
+            this.db = null;
+          };
+          this.fallbackToLocalStorage = false;
+          this.fallbackReason = '';
+          settle(true);
         };
         request.onerror = () => {
           this.fallbackToLocalStorage = true;
-          resolve(false);
+          this.fallbackReason = 'open failed (' + ((request.error && request.error.name) || 'UnknownError') + ')';
+          settle(false);
         };
         request.onblocked = () => {
+          // Usually another tab holds an old connection — retry may succeed after it closes
           this.fallbackToLocalStorage = true;
-          resolve(false);
+          this.fallbackReason = 'blocked by another open tab, close other admin tabs and retry';
+          settle(false);
         };
       });
     } catch (e) {
       this.fallbackToLocalStorage = true;
+      this.fallbackReason = 'unexpected error: ' + (e && e.message || e);
       return false;
     }
+  },
+
+  /* Retry IndexedDB after a failure (e.g. after closing blocking tabs).
+     On success the caller should reload so init paths migrate
+     localStorage data into IndexedDB automatically. */
+  async retryInit() {
+    this.db = null;
+    this.fallbackToLocalStorage = false;
+    this.fallbackReason = '';
+    return await this.init(true);
   },
 
   /* Read a value by key */
