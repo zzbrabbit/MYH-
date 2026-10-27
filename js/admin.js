@@ -103,13 +103,41 @@ function renderStats() {
 }
 
 /* ---------- Storage Indicator ---------- */
+function fmtSize(bytes) {
+  if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + 'GB';
+  if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(bytes >= 100 * 1024 * 1024 ? 0 : 1) + 'MB';
+  return Math.round(bytes / 1024) + 'KB';
+}
 async function updateStorageIndicator() {
   const el = $('#storageIndicator');
   if (!el) return;
   const info = await Store.getStorageInfo();
   const warnClass = info.percent > 80 ? 'storage-warn' : '';
   el.className = 'storage-bar ' + warnClass;
-  el.innerHTML = '<span class="storage-label">Storage: ' + info.usedKB + 'KB / ' + info.quotaKB + 'KB (' + info.percent + '%) · ' + escapeHtml(info.source) + '</span><div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
+  const quotaTxt = info.quotaReal ? fmtSize(info.quota) : info.quotaKB + 'KB';
+  let html = '<span class="storage-label">Storage 存储: ' + fmtSize(info.used) + ' / ' + quotaTxt + ' (' + info.percent + '%) · ' + escapeHtml(info.source) + '</span>'
+    + '<div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
+  if (info.source.indexOf('fallback') !== -1) {
+    // IndexedDB unavailable — warn loudly: localStorage really caps at ~5MB
+    html += '<div class="storage-fallback-warn" style="margin-top:6px;color:#b42318;font-size:.85rem;">'
+      + '⚠️ IndexedDB 不可用（' + escapeHtml(info.fallbackReason || 'unknown') + '），当前用 localStorage 兜底，实际上限只有约 5MB，图片多了会保存失败。'
+      + ' 请关闭其他后台标签页后 <a href="#" id="idbRetryLink" style="font-weight:600;">重试 IndexedDB</a>。</div>';
+  }
+  el.innerHTML = html;
+  const retry = el.querySelector('#idbRetryLink');
+  if (retry) {
+    retry.addEventListener('click', async (ev) => {
+      ev.preventDefault();
+      const ok = await DBStorage.retryInit();
+      if (ok) {
+        showToast('IndexedDB connected. Reloading to migrate data...', 'success');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast('IndexedDB still unavailable: ' + (DBStorage.fallbackReason || 'unknown'), 'error');
+        await updateStorageIndicator();
+      }
+    });
+  }
 }
 
 /* ---------- Render Table ---------- */
