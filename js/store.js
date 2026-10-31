@@ -1410,6 +1410,12 @@ const DBStorage = {
   /* Initialize IndexedDB; returns true on success */
   async init(force) {
     if (this.db && !force) return true;
+    if (typeof location !== 'undefined' && location.protocol === 'file:') {
+      // Chrome blocks IndexedDB for local files — fall back and tell the user
+      this.fallbackToLocalStorage = true;
+      this.fallbackReason = '当前是用本地文件(file://)打开的后台，Chrome 对本地文件禁用 IndexedDB。请用线上地址(域名/admin.html)打开';
+      return false;
+    }
     if (!window.indexedDB) {
       this.fallbackToLocalStorage = true;
       this.fallbackReason = 'browser does not support IndexedDB';
