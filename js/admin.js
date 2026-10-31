@@ -118,10 +118,28 @@ async function updateStorageIndicator() {
   let html = '<span class="storage-label">Storage 存储: ' + fmtSize(info.used) + ' / ' + quotaTxt + ' (' + info.percent + '%) · ' + escapeHtml(info.source) + '</span>'
     + '<div class="storage-track"><div class="storage-fill" style="width:' + info.percent + '%"></div></div>';
   if (info.source.indexOf('fallback') !== -1) {
-    // IndexedDB unavailable — warn loudly: localStorage really caps at ~5MB
+    // IndexedDB unavailable — warn loudly. Tailor the hint to the actual cause.
+    const reason = (info.fallbackReason || '').toLowerCase();
+    let hint, showRetry = false;
+    if (reason.indexOf('file:') !== -1 || reason.indexOf('本地文件') !== -1) {
+      hint = '请改用线上地址（你的域名/admin.html）打开后台，不要双击本地文件。';
+    } else if (reason.indexOf('blocked') !== -1) {
+      hint = '关闭其他打开的后台标签页，然后点下面的「重试 IndexedDB」。';
+      showRetry = true;
+    } else {
+      // corrupt DB or AV/security software — retry alone cannot fix it
+      hint = '该浏览器的站点数据库已损坏或被安全软件拦截。请先 Export 导出备份，再到浏览器设置里'
+        + '清除本站点（cbebeauty.com）数据并重新打开后台；若仍失败，多为 360/火绒/腾讯管家/Defender 实时防护'
+        + '拦截，请临时关闭或加白名单，也可直接改用 Edge 打开后台。';
+    }
     html += '<div class="storage-fallback-warn" style="margin-top:6px;color:#b42318;font-size:.85rem;">'
-      + '⚠️ IndexedDB 不可用（' + escapeHtml(info.fallbackReason || 'unknown') + '），当前用 localStorage 兜底，实际上限只有约 5MB，图片多了会保存失败。'
-      + ' 请关闭其他后台标签页后 <a href="#" id="idbRetryLink" style="font-weight:600;">重试 IndexedDB</a>。</div>';
+      + '⚠️ IndexedDB 不可用（' + escapeHtml(info.fallbackReason || 'unknown') + '），当前用 localStorage 兜底，'
+      + '实际上限只有约 5MB，图片多了会保存失败。' + escapeHtml(hint)
+      + (showRetry ? ' <a href="#" id="idbRetryLink" style="font-weight:600;">重试 IndexedDB</a>。' : '');
+    if (!showRetry) {
+      html += ' <span style="color:#7a271a;">（「重试」按钮对这种情况无效，请按上面步骤处理）</span>';
+    }
+    html += '</div>';
   }
   el.innerHTML = html;
   const retry = el.querySelector('#idbRetryLink');
